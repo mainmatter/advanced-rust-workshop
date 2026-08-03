@@ -1,0 +1,5 @@
+[package]
+name = "phantom_entry_ref"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true

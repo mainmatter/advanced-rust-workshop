@@ -1,0 +1,5 @@
+[package]
+name = "borrow_checker_retain"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true

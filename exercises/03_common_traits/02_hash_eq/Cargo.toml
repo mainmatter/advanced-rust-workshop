@@ -1,0 +1,5 @@
+[package]
+name = "common_traits_hash_eq"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true

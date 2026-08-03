@@ -1,0 +1,5 @@
+[package]
+name = "newtype_parse_dont_validate"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true

@@ -1,0 +1,78 @@
+# Sealed traits
+
+`minidb` now has two public traits that want opposite things.
+
+`Format` is an **extension point**. Somebody else's crate should be able to add a format, and every
+method they need to do that is public.
+
+`State` and `Section` are **implementation details that happen to be public**. `ReadOnly`,
+`ReadWrite`, `Root` and `InBucket` are the only members that will ever make sense, and the rest of
+the crate assumes it. A `Transaction<MyOwnState>` would satisfy the bound and have no methods at all,
+because `insert` is defined on `Transaction<'_, ReadWrite>` and nowhere else.
+
+Making a trait public and implementable is a promise. Sealing takes back half of it.
+
+## The pattern
+
+```rust
+mod sealed {
+    pub trait Sealed {}
+}
+
+pub trait State: sealed::Sealed {}
+
+impl sealed::Sealed for ReadOnly {}
+impl State for ReadOnly {}
+```
+
+The `sealed` module is private, so `sealed::Sealed` cannot be named outside this crate. A downstream
+crate can still see `State`, still write `T: State` bounds, still call every method: it just cannot
+write `impl State for MyType`, because it cannot implement the supertrait it would need.
+
+The error a downstream user gets is honest, if not beautiful:
+
+```text
+error[E0277]: the trait bound `MyType: Sealed` is not satisfied
+```
+
+Adding a `# Sealed` note to the trait's documentation is worth the two lines it costs.
+
+## What sealing buys
+
+**Freedom to add methods.** A trait nobody outside can implement can grow a required method in a
+minor release without breaking anyone. For an open trait, adding a required method is a breaking
+change, and adding a defaulted one still risks colliding with an implementor's inherent method.
+
+**Freedom to assume exhaustiveness.** If you know every implementor, you can match on them, add
+blanket impls, and rely on invariants the trait itself does not express. Every marker type here has
+matching impl blocks written by hand: that reasoning is only sound because the list is closed.
+
+**A clearer contract.** The trait becomes documentation of a closed set rather than an invitation.
+
+## When not to seal
+
+Sealing is a restriction on your users, so it needs a reason. Leave a trait open when you want people
+to implement it: `Format` here, `Iterator`, `Read`, `serde::Serialize`.
+
+The question to ask: **is a third-party implementation of this trait something I want to work?** If
+yes, leave it open and accept that its signature is frozen. If the answer is "that would be
+meaningless" or "that would break my invariants", seal it and say so in the docs.
+
+`std` seals plenty: `Error`'s internals, `SliceIndex`, the `Pattern` trait, `OsStrExt`. All of them
+are closed sets that exist to be _used_ rather than extended.
+
+## The nearby alternative
+
+An enum is the other way to spell "a closed set", and it is often better:
+
+```rust
+pub enum Format { Ini, Csv }
+```
+
+An enum is closed by construction, exhaustively matchable, and needs no ceremony. It cannot be
+extended by anyone, including you in a minor release, and it cannot carry per-variant behaviour
+without a `match` in every method.
+
+The rough division: **enum when the set is small and you dispatch on it; sealed trait when each member
+carries its own behaviour or is used as a type parameter.** `State` and `Section` are type
+parameters, so they have to be types, and sealing is the only way to close the set.
