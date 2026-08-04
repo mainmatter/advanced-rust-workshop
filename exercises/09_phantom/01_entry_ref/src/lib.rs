@@ -557,13 +557,13 @@ fn parse_name(raw: &str) -> Result<String, NameError> {
         return Err(NameError::TooLong { length: raw.len() });
     }
 
-    match raw.char_indices().find(|(_, c)| !is_allowed(*c)) {
+    match raw.char_indices().find(|(_, c)| !is_valid_char(*c)) {
         Some((index, character)) => Err(NameError::InvalidCharacter { character, index }),
         None => Ok(raw.to_owned()),
     }
 }
 
-fn is_allowed(c: char) -> bool {
+fn is_valid_char(c: char) -> bool {
     c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | '/')
 }
 #[cfg(test)]
