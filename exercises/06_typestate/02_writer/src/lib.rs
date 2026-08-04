@@ -4,8 +4,9 @@
 //! dies in it. This exercise is the other half of the pattern, where the state moves, and the type
 //! moves with it.
 //!
-//! `Store::export` is already written, and it does not compile, because it uses a `Writer` that does
-//! not exist yet. `Writer` renders the store as text:
+//! `Store::export` is already written, and it does not compile, because it sorts `Bucket`s and
+//! `Key`s that cannot yet be compared. `Writer` is here too, as a skeleton of `todo!()`s. It renders
+//! the store as text:
 //!
 //! ```text
 //! [orders]
@@ -30,7 +31,7 @@
 //! single-use value from the last chapter, used once per step to walk a state machine.
 //!
 //! You will also need `PartialOrd` and `Ord` on `Bucket` and `Key`, because `export` sorts so that
-//! the output does not depend on `HashMap` iteration order. One word each.
+//! the output does not depend on `HashMap` iteration order. Two more derives on each.
 //!
 //! Two things must not compile. An entry outside a bucket:
 //!
@@ -128,7 +129,7 @@ impl Store {
         self.buckets.get_mut(bucket)?.remove(key)
     }
 
-    /// Lists the buckets that hold at least one value.
+    /// Lists the buckets, including any that have been emptied.
     pub fn buckets(&self) -> impl Iterator<Item = &Bucket> {
         self.buckets.keys()
     }

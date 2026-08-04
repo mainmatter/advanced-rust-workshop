@@ -61,6 +61,7 @@ impl Store {
 pub struct Bucket(pub String);
 
 impl Bucket {
+    /// Creates a bucket name.
     pub fn new(name: impl Into<String>) -> Self {
         Self(name.into())
     }
@@ -75,6 +76,7 @@ impl Bucket {
 pub struct Key(pub String);
 
 impl Key {
+    /// Creates a key.
     pub fn new(name: impl Into<String>) -> Self {
         Self(name.into())
     }

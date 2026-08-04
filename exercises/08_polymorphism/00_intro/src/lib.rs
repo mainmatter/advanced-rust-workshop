@@ -91,7 +91,7 @@ impl Store {
         self.buckets.get_mut(bucket)?.remove(key)
     }
 
-    /// Lists the buckets that hold at least one value.
+    /// Lists the buckets, including any that have been emptied.
     pub fn buckets(&self) -> impl Iterator<Item = &Bucket> {
         self.buckets.keys()
     }

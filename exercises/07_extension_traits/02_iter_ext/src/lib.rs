@@ -50,6 +50,9 @@
 //!
 //! The caller has to disambiguate with `IteratorExt::collect_sorted(iter)`, and they did not ask for
 //! that problem. It is the strongest argument for keeping extension traits small.
+//!
+//! This exercise starts out **not compiling**: the tests import `IteratorExt`, which does not exist
+//! yet.
 
 use std::collections::HashMap;
 use std::fmt::{self, Debug, Formatter};
@@ -127,7 +130,7 @@ impl Store {
         self.buckets.get_mut(bucket)?.remove(key)
     }
 
-    /// Lists the buckets that hold at least one value.
+    /// Lists the buckets, including any that have been emptied.
     pub fn buckets(&self) -> impl Iterator<Item = &Bucket> {
         self.buckets.keys()
     }

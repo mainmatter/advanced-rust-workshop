@@ -60,6 +60,9 @@
 //! `i32`. `BorrowedFd` wraps that `i32` and adds `PhantomData<&'fd OwnedFd>`, so the borrow checker
 //! stops you using a descriptor after the `OwnedFd` that owns it has closed it. The number would have
 //! been perfectly valid. The type is what makes it a use-after-close.
+//!
+//! This exercise starts out **not compiling**: the tests call `entry_ref` and `read`, which do not
+//! exist yet.
 
 mod sealed {
     pub trait Sealed {}
@@ -141,7 +144,7 @@ impl Store {
         self.buckets.get_mut(bucket)?.remove(key)
     }
 
-    /// Lists the buckets that hold at least one value.
+    /// Lists the buckets, including any that have been emptied.
     pub fn buckets(&self) -> impl Iterator<Item = &Bucket> {
         self.buckets.keys()
     }

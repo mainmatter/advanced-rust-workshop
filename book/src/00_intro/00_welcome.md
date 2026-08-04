@@ -33,8 +33,9 @@ build, and your job is to make them pass. Some tests are `compile_fail` doctests
 certain code must **not** compile. Those are the interesting ones: in this course, a compiler error is
 frequently the feature.
 
-Exercises include `TODO` and `todo!()` markers to draw your attention to the lines where you need to
-write code. Sometimes a single line is enough, sometimes you will need to reshape a whole type.
+Some exercises hand you a `todo!()` to replace. In others there is nothing to replace: the exercise
+text tells you what to add, and the tests show you its shape. Sometimes a single line is enough,
+sometimes you will need to reshape a whole type.
 
 > ⚠️ **Do not modify the tests.** They are the specification. Change the code under test, not the test.
 

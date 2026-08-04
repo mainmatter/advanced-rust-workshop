@@ -6,7 +6,7 @@
 //! | --- | --- |
 //! | `make_store` | constructors are called `new` |
 //! | `set_value` | `HashMap` calls this `insert`, and `set` does not suggest a return value |
-//! | `get_value` | the `get_` prefix is noise, and `value` is what a store holds anyway |
+//! | `get_value` | `HashMap` calls this `get`, and `_value` says what a store holds anyway |
 //! | `delete` | the standard library word is `remove` |
 //! | `is_has_bucket` | `is_` is for adjectives, possession is `contains_` |
 //! | `get_count` | `len`, and where there is a `len` there is an `is_empty` (add it) |

@@ -51,6 +51,8 @@
 //!
 //! This is the trick behind `GhostCell` and the `generativity` crate, and it is how a library can
 //! hand out indices that are checked once and then used without bounds checks, safely.
+//!
+//! This exercise starts out **not compiling**: the tests name `scope`, which does not exist yet.
 mod sealed {
     pub trait Sealed {}
 }
@@ -131,7 +133,7 @@ impl Store {
         self.buckets.get_mut(bucket)?.remove(key)
     }
 
-    /// Lists the buckets that hold at least one value.
+    /// Lists the buckets, including any that have been emptied.
     pub fn buckets(&self) -> impl Iterator<Item = &Bucket> {
         self.buckets.keys()
     }
