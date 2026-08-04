@@ -12,6 +12,9 @@
 //! Check those rules in that order, and report the first violation. Write the validation once and
 //! call it from both types.
 //!
+//! `is_valid_char` is already in the file: it is that third rule, spelled out. Use it rather than
+//! writing the character set again.
+//!
 //! Then **delete `Bucket::new` and `Key::new`**. Parsing is worthless while the unchecked door is
 //! still open, so this must stop compiling:
 //!
@@ -93,6 +96,10 @@ pub enum NameError {
     Empty,
     TooLong { length: usize },
     InvalidCharacter { character: char, index: usize },
+}
+
+fn is_valid_char(c: char) -> bool {
+    c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | '/')
 }
 
 #[cfg(test)]
