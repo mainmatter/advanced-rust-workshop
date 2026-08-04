@@ -43,8 +43,8 @@ jobs:
             --exclude-loopback
             --require-https
             --no-progress
-            --root-dir ${{ github.workspace }}/book/book
             --exclude-path book/book/fonts
+            --exclude-path book/book/404.html
             book/book
       - uses: actions/upload-pages-artifact@v3
         with:
