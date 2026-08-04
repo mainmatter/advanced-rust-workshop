@@ -72,6 +72,17 @@ impl Store {
     pub fn buckets(&self) -> impl Iterator<Item = &Bucket> {
         self.buckets.keys()
     }
+
+    /// Keeps only the values the predicate accepts, dropping any bucket left empty.
+    pub fn retain<F>(&mut self, mut predicate: F)
+    where
+        F: FnMut(&Bucket, &Key, &Value) -> bool,
+    {
+        self.buckets.retain(|bucket, values| {
+            values.retain(|key, value| predicate(bucket, key, value));
+            !values.is_empty()
+        });
+    }
 }
 
 /// The name of a bucket.

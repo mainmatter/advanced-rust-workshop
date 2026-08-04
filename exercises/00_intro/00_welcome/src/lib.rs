@@ -13,7 +13,7 @@
 
 /// Reports whether you are ready to start.
 pub fn ready() -> bool {
-    todo!("this one really is a one-liner")
+    true
 }
 
 #[cfg(test)]

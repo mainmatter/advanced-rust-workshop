@@ -302,6 +302,54 @@ pub struct EntryRef<'store> {
     _store: PhantomData<&'store Store>,
 }
 
+/// A [`Store`] whose keys cannot be used with any other store.
+pub struct Scoped<'brand> {
+    store: Store,
+    _brand: PhantomData<fn(&'brand ()) -> &'brand ()>,
+}
+
+impl<'brand> Scoped<'brand> {
+    /// Parses a key that only this store will accept.
+    pub fn key(&self, raw: &str) -> Result<ScopedKey<'brand>, NameError> {
+        Ok(ScopedKey {
+            key: Key::parse(raw)?,
+            _brand: PhantomData,
+        })
+    }
+
+    /// Inserts a value, returning the value it replaced, if any.
+    pub fn insert(
+        &mut self,
+        bucket: Bucket,
+        key: ScopedKey<'brand>,
+        value: Value,
+    ) -> Option<Value> {
+        self.store.insert(bucket, key.key, value)
+    }
+
+    /// Looks up a value.
+    pub fn get(&self, bucket: &Bucket, key: &ScopedKey<'brand>) -> Option<&Value> {
+        self.store.get(bucket, &key.key)
+    }
+}
+
+/// A [`Key`] that belongs to exactly one [`Scoped`] store.
+pub struct ScopedKey<'brand> {
+    key: Key,
+    _brand: PhantomData<fn(&'brand ()) -> &'brand ()>,
+}
+
+/// Runs `changes` against a store with a brand no other scope can name.
+pub fn scope<F, R>(changes: F) -> R
+where
+    F: for<'brand> FnOnce(Scoped<'brand>) -> R,
+{
+    changes(Scoped {
+        store: Store::new(),
+        _brand: PhantomData,
+    })
+}
+
 /// What a [`Transaction`] is allowed to do.
 ///
 /// This trait is sealed: `minidb` defines every access mode there is.

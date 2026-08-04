@@ -42,6 +42,25 @@ impl Store {
         }
     }
 
+    /// Runs `changes` in a transaction, committing it if they succeed and rolling it back if they
+    /// do not.
+    pub fn transaction<F, T, E>(&mut self, changes: F) -> Result<T, E>
+    where
+        F: FnOnce(&mut Transaction<'_>) -> Result<T, E>,
+    {
+        let mut tx = self.begin();
+
+        let result = changes(&mut tx);
+
+        if result.is_ok() {
+            tx.commit();
+        } else {
+            tx.rollback();
+        }
+
+        result
+    }
+
     /// Starts a transaction, borrowing the store until it finishes.
     pub fn begin(&mut self) -> Transaction<'_> {
         Transaction {
@@ -306,7 +325,7 @@ mod tests {
         let outcome = store.transaction(|tx| {
             tx.insert(users.clone(), id.clone(), Value::new("Alice"));
             let value = rejected()?;
-            tx.insert(&users, &id, value);
+            tx.insert(users.clone(), id.clone(), value);
             Ok(())
         });
 

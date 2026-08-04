@@ -26,7 +26,7 @@ const MAX_NAME_LENGTH: usize = 64;
 
 /// An in-memory key-value store, partitioned into named buckets.
 pub struct Store {
-    buckets: HashMap<String, HashMap<String, Value>>,
+    buckets: HashMap<Bucket, HashMap<Key, Value>>,
 }
 
 impl Store {
@@ -40,24 +40,29 @@ impl Store {
     /// Inserts a value, returning the value it replaced, if any.
     pub fn insert(&mut self, bucket: &Bucket, key: &Key, value: Value) -> Option<Value> {
         self.buckets
-            .entry(bucket.as_str().to_owned())
+            .entry(bucket.clone())
             .or_default()
-            .insert(key.as_str().to_owned(), value)
+            .insert(key.clone(), value)
     }
 
     /// Looks up a value.
     pub fn get(&self, bucket: &Bucket, key: &Key) -> Option<&Value> {
-        self.buckets.get(bucket.as_str())?.get(key.as_str())
+        self.buckets.get(bucket)?.get(key)
     }
 
     /// Removes a value, returning it if it was there.
     pub fn remove(&mut self, bucket: &Bucket, key: &Key) -> Option<Value> {
-        self.buckets.get_mut(bucket.as_str())?.remove(key.as_str())
+        self.buckets.get_mut(bucket)?.remove(key)
+    }
+
+    /// Lists the buckets, including any that have been emptied.
+    pub fn buckets(&self) -> impl Iterator<Item = &Bucket> {
+        self.buckets.keys()
     }
 }
 
 /// The name of a bucket.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Bucket(String);
 
 impl Bucket {
@@ -78,7 +83,7 @@ impl Bucket {
 }
 
 /// The name of a value within a bucket.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Key(String);
 
 impl Key {
@@ -95,6 +100,14 @@ impl Key {
     /// Consumes the key, returning the wrapped `String`.
     pub fn into_inner(self) -> String {
         self.0
+    }
+}
+
+impl TryFrom<&str> for Key {
+    type Error = NameError;
+
+    fn try_from(raw: &str) -> Result<Self, Self::Error> {
+        Self::parse(raw)
     }
 }
 

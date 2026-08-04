@@ -53,8 +53,8 @@ impl Store {
         }
     }
 
-    /// Hands the store to a transaction, which gives it back when it finishes.
-    pub fn begin(self) -> Transaction {
+    /// Starts a transaction, borrowing the store until it finishes.
+    pub fn begin(&mut self) -> Transaction<'_> {
         Transaction {
             store: self,
             undo: Vec::new(),
@@ -97,12 +97,12 @@ impl Store {
 ///
 /// Changes take effect immediately. Until [`Transaction::commit`] is called, every one of them can
 /// still be taken back by [`Transaction::rollback`].
-pub struct Transaction {
-    store: Store,
+pub struct Transaction<'store> {
+    store: &'store mut Store,
     undo: Vec<Undo>,
 }
 
-impl Transaction {
+impl Transaction<'_> {
     /// Inserts a value as part of this transaction.
     pub fn insert(&mut self, bucket: Bucket, key: Key, value: Value) {
         let previous = self.store.insert(bucket.clone(), key.clone(), value);
@@ -123,21 +123,17 @@ impl Transaction {
         });
     }
 
-    /// Keeps every change made through this transaction, and gives the store back.
-    pub fn commit(self) -> Store {
-        self.store
-    }
+    /// Keeps every change made through this transaction.
+    pub fn commit(self) {}
 
-    /// Takes back every change made through this transaction, and gives the store back.
-    pub fn rollback(mut self) -> Store {
+    /// Takes back every change made through this transaction.
+    pub fn rollback(self) {
         for undo in self.undo.into_iter().rev() {
             match undo.previous {
                 Some(value) => self.store.insert(undo.bucket, undo.key, value),
                 None => self.store.remove(&undo.bucket, &undo.key),
             };
         }
-
-        self.store
     }
 }
 

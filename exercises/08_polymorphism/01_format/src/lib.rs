@@ -61,6 +61,7 @@
 //! ```
 //!
 //! This exercise starts out **not compiling**: the tests name the new types.
+
 use std::{
     collections::HashMap,
     fmt::{self, Debug, Formatter},
@@ -154,27 +155,40 @@ impl Store {
         });
     }
 
-    /// Renders the whole store as text, with buckets and keys in sorted order.
+    /// Renders the whole store in the default format.
     pub fn export(&self) -> String {
+        self.export_with(Ini::default())
+    }
+
+    /// Renders the whole store in the given format, chosen at compile time.
+    pub fn export_with<F>(&self, mut format: F) -> String
+    where
+        F: Format,
+    {
+        self.render(&mut format)
+    }
+
+    /// Renders the whole store in the given format, chosen at run time.
+    pub fn export_into(&self, format: &mut dyn Format) -> String {
+        self.render(format)
+    }
+
+    fn render(&self, format: &mut dyn Format) -> String {
         let mut buckets = self.buckets.iter().collect::<Vec<_>>();
         buckets.sort_by(|(left, _), (right, _)| left.cmp(right));
 
-        let mut writer = Writer::new();
-
         for (bucket, values) in buckets {
+            format.bucket(bucket);
+
             let mut entries = values.iter().collect::<Vec<_>>();
             entries.sort_by(|(left, _), (right, _)| left.cmp(right));
 
-            let mut open = writer.bucket(bucket);
-
             for (key, value) in entries {
-                open = open.entry(key, value);
+                format.entry(key, value);
             }
-
-            writer = open.end();
         }
 
-        writer.finish()
+        format.finish()
     }
 }
 
@@ -258,6 +272,73 @@ pub struct ReadOnly;
 
 /// A transaction that may read and write.
 pub struct ReadWrite;
+
+/// A rendering of a [`Store`], one bucket and one entry at a time.
+///
+/// Every method takes `&mut self` rather than `self`, and none of them are generic, so the trait is
+/// usable as `dyn Format`.
+pub trait Format {
+    /// Starts a bucket.
+    fn bucket(&mut self, bucket: &Bucket);
+
+    /// Writes one entry of the bucket that was started last.
+    fn entry(&mut self, key: &Key, value: &Value);
+
+    /// Returns the finished document, leaving the formatter empty.
+    fn finish(&mut self) -> String;
+}
+
+/// Renders `[bucket]` headings and `key = value` lines.
+#[derive(Default)]
+pub struct Ini {
+    output: String,
+}
+
+impl Format for Ini {
+    fn bucket(&mut self, bucket: &Bucket) {
+        self.output.push('[');
+        self.output.push_str(bucket.as_str());
+        self.output.push_str("]\n");
+    }
+
+    fn entry(&mut self, key: &Key, value: &Value) {
+        self.output.push_str(key.as_str());
+        self.output.push_str(" = ");
+        self.output.push_str(value.as_str());
+        self.output.push('\n');
+    }
+
+    fn finish(&mut self) -> String {
+        mem::take(&mut self.output)
+    }
+}
+
+/// Renders one `bucket,key,value` line per entry.
+#[derive(Default)]
+pub struct Csv {
+    output: String,
+    bucket: String,
+}
+
+impl Format for Csv {
+    fn bucket(&mut self, bucket: &Bucket) {
+        self.bucket = bucket.as_str().to_owned();
+    }
+
+    fn entry(&mut self, key: &Key, value: &Value) {
+        self.output.push_str(&self.bucket);
+        self.output.push(',');
+        self.output.push_str(key.as_str());
+        self.output.push(',');
+        self.output.push_str(value.as_str());
+        self.output.push('\n');
+    }
+
+    fn finish(&mut self) -> String {
+        self.bucket.clear();
+        mem::take(&mut self.output)
+    }
+}
 
 /// Renders a [`Store`] as text, one bucket at a time.
 pub struct Writer<P> {

@@ -197,6 +197,22 @@ impl Store {
 
         format.finish()
     }
+
+    /// Remembers where a value lives, if it is there at all.
+    pub fn entry_ref(&self, bucket: &Bucket, key: &Key) -> Option<EntryRef<'_>> {
+        self.get(bucket, key)?;
+
+        Some(EntryRef {
+            bucket: bucket.clone(),
+            key: key.clone(),
+            _store: PhantomData,
+        })
+    }
+
+    /// Reads the value a handle points at.
+    pub fn read(&self, entry_ref: &EntryRef<'_>) -> Option<&Value> {
+        self.get(&entry_ref.bucket, &entry_ref.key)
+    }
 }
 
 /// A set of changes applied to a [`Store`] together.
@@ -281,6 +297,16 @@ where
             panic!("transaction dropped while neither committed nor rolled back");
         }
     }
+}
+
+/// Where a value lives in a [`Store`], remembered without holding on to the value.
+///
+/// The handle owns its names and borrows nothing, so the `PhantomData` is what ties it to the store
+/// it came from.
+pub struct EntryRef<'store> {
+    bucket: Bucket,
+    key: Key,
+    _store: PhantomData<&'store Store>,
 }
 
 /// What a [`Transaction`] is allowed to do.

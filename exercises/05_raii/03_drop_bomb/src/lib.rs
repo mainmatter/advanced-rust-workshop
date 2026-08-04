@@ -119,11 +119,13 @@ impl Transaction<'_> {
 
     /// Keeps every change made through this transaction.
     pub fn commit(mut self) {
+        self.finished = true;
         self.undo.clear();
     }
 
     /// Takes back every change made through this transaction.
     pub fn rollback(mut self) {
+        self.finished = true;
         self.undo_everything();
     }
 
@@ -139,7 +141,15 @@ impl Transaction<'_> {
 
 impl Drop for Transaction<'_> {
     fn drop(&mut self) {
+        if self.finished {
+            return;
+        }
+
         self.undo_everything();
+
+        if !thread::panicking() {
+            panic!("transaction dropped while neither committed nor rolled back");
+        }
     }
 }
 

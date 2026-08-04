@@ -64,14 +64,9 @@ impl Store {
 pub struct Bucket(pub String);
 
 impl Bucket {
-    /// Creates a bucket name.
-    pub fn new(name: impl Into<String>) -> Self {
-        Self(name.into())
-    }
-
     /// Parses a bucket name, rejecting anything `minidb` cannot store.
     pub fn parse(raw: &str) -> Result<Self, NameError> {
-        todo!()
+        parse_name(raw).map(Self)
     }
 }
 
@@ -79,14 +74,9 @@ impl Bucket {
 pub struct Key(pub String);
 
 impl Key {
-    /// Creates a key.
-    pub fn new(name: impl Into<String>) -> Self {
-        Self(name.into())
-    }
-
     /// Parses a key, rejecting anything `minidb` cannot store.
     pub fn parse(raw: &str) -> Result<Self, NameError> {
-        todo!()
+        parse_name(raw).map(Self)
     }
 }
 
@@ -96,6 +86,21 @@ pub enum NameError {
     Empty,
     TooLong { length: usize },
     InvalidCharacter { character: char, index: usize },
+}
+
+fn parse_name(raw: &str) -> Result<String, NameError> {
+    if raw.is_empty() {
+        return Err(NameError::Empty);
+    }
+
+    if raw.len() > MAX_NAME_LENGTH {
+        return Err(NameError::TooLong { length: raw.len() });
+    }
+
+    match raw.char_indices().find(|(_, c)| !is_valid_char(*c)) {
+        Some((index, character)) => Err(NameError::InvalidCharacter { character, index }),
+        None => Ok(raw.to_owned()),
+    }
 }
 
 fn is_valid_char(c: char) -> bool {

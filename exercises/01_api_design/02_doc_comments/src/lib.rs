@@ -33,7 +33,7 @@ impl Store {
     /// ```
     /// use api_design_doc_comments::Store;
     ///
-    /// let store = Store::make_store();
+    /// let store = Store::new();
     /// assert!(store.is_empty());
     /// ```
     pub fn new() -> Store {
@@ -51,8 +51,8 @@ impl Store {
     ///
     /// let mut store = Store::new();
     ///
-    /// assert_eq!(store.set_value("users", "42", "Alice"), None);
-    /// assert_eq!(store.set_value("users", "42", "Bob").as_deref(), Some("Alice"));
+    /// assert_eq!(store.insert("users", "42", "Alice"), None);
+    /// assert_eq!(store.insert("users", "42", "Bob").as_deref(), Some("Alice"));
     /// ```
     pub fn insert(&mut self, bucket: &str, key: &str, value: &str) -> Option<String> {
         self.buckets
@@ -61,16 +61,22 @@ impl Store {
             .insert(key.to_owned(), value.to_owned())
     }
 
-    /// Looks up a value, returning an empty string when the bucket or the key is unknown.
+    /// Looks up a value, returning `None` when the bucket or the key is unknown.
+    ///
+    /// The two cases are deliberately indistinguishable: a caller who needs to tell them apart
+    /// should ask [`Store::contains_bucket`] first.
     ///
     /// # Examples
     ///
     /// ```
     /// use api_design_doc_comments::Store;
     ///
-    /// let store = Store::new();
+    /// let mut store = Store::new();
+    /// store.insert("users", "42", "Alice");
     ///
-    /// assert_eq!(store.get("users", "42"), Some(""));
+    /// assert_eq!(store.get("users", "42"), Some("Alice"));
+    /// assert_eq!(store.get("users", "43"), None);
+    /// assert_eq!(store.get("orders", "42"), None);
     /// ```
     pub fn get(&self, bucket: &str, key: &str) -> Option<&str> {
         self.buckets.get(bucket)?.get(key).map(String::as_str)
@@ -81,14 +87,19 @@ impl Store {
         self.buckets.get_mut(bucket)?.remove(key)
     }
 
+    /// Reports whether a bucket exists, even if it holds no values.
     pub fn contains_bucket(&self, bucket: &str) -> bool {
         self.buckets.contains_key(bucket)
     }
 
+    /// Returns the number of values across every bucket.
+    ///
+    /// This walks every bucket, so it is O(number of buckets) rather than O(1).
     pub fn len(&self) -> usize {
         self.buckets.values().map(HashMap::len).sum()
     }
 
+    /// Reports whether the store holds no values at all.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }

@@ -49,21 +49,41 @@ impl Store {
     }
 
     /// Inserts a value, returning the value it replaced, if any.
-    pub fn insert(&mut self, bucket: &str, key: &str, value: &str) -> Option<String> {
+    pub fn insert(&mut self, bucket: &Bucket, key: &Key, value: &str) -> Option<String> {
         self.buckets
-            .entry(bucket.to_owned())
+            .entry(bucket.0.clone())
             .or_default()
-            .insert(key.to_owned(), value.to_owned())
+            .insert(key.0.clone(), value.to_owned())
     }
 
     /// Looks up a value.
-    pub fn get(&self, bucket: &str, key: &str) -> Option<&str> {
-        self.buckets.get(bucket)?.get(key).map(String::as_str)
+    pub fn get(&self, bucket: &Bucket, key: &Key) -> Option<&str> {
+        self.buckets.get(&bucket.0)?.get(&key.0).map(String::as_str)
     }
 
     /// Removes a value, returning it if it was there.
-    pub fn remove(&mut self, bucket: &str, key: &str) -> Option<String> {
-        self.buckets.get_mut(bucket)?.remove(key)
+    pub fn remove(&mut self, bucket: &Bucket, key: &Key) -> Option<String> {
+        self.buckets.get_mut(&bucket.0)?.remove(&key.0)
+    }
+}
+
+/// The name of a bucket.
+pub struct Bucket(pub String);
+
+impl Bucket {
+    /// Creates a bucket name.
+    pub fn new(name: impl Into<String>) -> Self {
+        Self(name.into())
+    }
+}
+
+/// The name of a value within a bucket.
+pub struct Key(pub String);
+
+impl Key {
+    /// Creates a key.
+    pub fn new(name: impl Into<String>) -> Self {
+        Self(name.into())
     }
 }
 
