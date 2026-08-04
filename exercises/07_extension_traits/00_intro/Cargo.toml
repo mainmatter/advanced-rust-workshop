@@ -1,5 +1,5 @@
 [package]
-name = "extension_intro"
+name = "extension_traits_intro"
 version.workspace = true
 edition.workspace = true
 publish.workspace = true

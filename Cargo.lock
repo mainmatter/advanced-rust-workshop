@@ -39,15 +39,15 @@ name = "common_traits_intro"
 version = "0.1.0"
 
 [[package]]
-name = "extension_intro"
+name = "extension_traits_intro"
 version = "0.1.0"
 
 [[package]]
-name = "extension_iter"
+name = "extension_traits_iter_ext"
 version = "0.1.0"
 
 [[package]]
-name = "extension_str"
+name = "extension_traits_str_ext"
 version = "0.1.0"
 
 [[package]]

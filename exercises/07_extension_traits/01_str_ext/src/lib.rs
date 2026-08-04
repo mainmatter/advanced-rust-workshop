@@ -32,7 +32,7 @@
 //! ship. The answer is in the book, and it is not the one this chapter is named after.
 //!
 //! One thing to notice while you work: an extension trait only exists at a call site that has
-//! imported it. `use extension_str::StrExt;` is not a formality, it is the whole mechanism, and it is
+//! imported it. `use extension_traits_str_ext::StrExt;` is not a formality, it is the whole mechanism, and it is
 //! why `Itertools` makes you write that line.
 //!
 //! This exercise starts out **not compiling**: the tests import `StrExt`, which does not exist yet.

@@ -30,7 +30,7 @@
 //! neither wins:
 //!
 //! ```compile_fail,E0034
-//! use extension_iter::IteratorExt;
+//! use extension_traits_iter_ext::IteratorExt;
 //!
 //! trait AlsoExt {
 //!     fn collect_sorted(self) -> Vec<u8>;

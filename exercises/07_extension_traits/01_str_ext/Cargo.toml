@@ -1,5 +1,5 @@
 [package]
-name = "extension_str"
+name = "extension_traits_str_ext"
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
