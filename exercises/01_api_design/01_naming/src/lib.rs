@@ -34,14 +34,14 @@ pub struct Store {
 
 impl Store {
     /// Creates an empty store.
-    pub fn make_store() -> Store {
+    pub fn new() -> Store {
         Store {
             buckets: HashMap::new(),
         }
     }
 
-    /// Stores a value, handing back whatever was there before.
-    pub fn set_value(&mut self, bucket: &str, key: &str, value: &str) -> Option<String> {
+    /// Inserts a value, returning the value it replaced, if any.
+    pub fn insert(&mut self, bucket: &str, key: &str, value: &str) -> Option<String> {
         self.buckets
             .entry(bucket.to_owned())
             .or_default()
@@ -49,27 +49,32 @@ impl Store {
     }
 
     /// Looks up a value.
-    pub fn get_value(&self, bucket: &str, key: &str) -> Option<&str> {
+    pub fn get(&self, bucket: &str, key: &str) -> Option<&str> {
         self.buckets.get(bucket)?.get(key).map(String::as_str)
     }
 
-    /// Drops a value from its bucket, handing it back.
-    pub fn delete(&mut self, bucket: &str, key: &str) -> Option<String> {
+    /// Removes a value, returning it if it was there.
+    pub fn remove(&mut self, bucket: &str, key: &str) -> Option<String> {
         self.buckets.get_mut(bucket)?.remove(key)
     }
 
     /// Reports whether a bucket exists.
-    pub fn is_has_bucket(&self, bucket: &str) -> bool {
+    pub fn contains_bucket(&self, bucket: &str) -> bool {
         self.buckets.contains_key(bucket)
     }
 
-    /// Counts the values across every bucket.
-    pub fn get_count(&self) -> usize {
+    /// Returns the number of values across every bucket.
+    pub fn len(&self) -> usize {
         self.buckets.values().map(HashMap::len).sum()
     }
 
-    /// Hands back the whole store as a plain map.
-    pub fn as_map(&self) -> HashMap<String, HashMap<String, String>> {
+    /// Reports whether the store holds no values at all.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// Copies the whole store into a plain map.
+    pub fn to_map(&self) -> HashMap<String, HashMap<String, String>> {
         self.buckets.clone()
     }
 }

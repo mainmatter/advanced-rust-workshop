@@ -41,7 +41,9 @@ use std::{
     collections::HashMap,
     fmt::{self, Debug, Formatter},
     marker::PhantomData,
-    mem, thread,
+    mem,
+    str::FromStr,
+    thread,
 };
 
 const MAX_NAME_LENGTH: usize = 64;
@@ -294,6 +296,25 @@ pub struct Root;
 /// A writer inside a bucket.
 pub struct InBucket;
 
+/// Parses `minidb` names straight from string slices.
+pub trait StrExt {
+    /// Parses this string as a bucket name.
+    fn to_bucket(&self) -> Result<Bucket, NameError>;
+
+    /// Parses this string as a key.
+    fn to_key(&self) -> Result<Key, NameError>;
+}
+
+impl StrExt for str {
+    fn to_bucket(&self) -> Result<Bucket, NameError> {
+        Bucket::parse(self)
+    }
+
+    fn to_key(&self) -> Result<Key, NameError> {
+        Key::parse(self)
+    }
+}
+
 /// The name of a bucket.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Bucket(String);
@@ -315,6 +336,14 @@ impl Bucket {
     }
 }
 
+impl FromStr for Bucket {
+    type Err = NameError;
+
+    fn from_str(raw: &str) -> Result<Self, Self::Err> {
+        Self::parse(raw)
+    }
+}
+
 /// The name of a value within a bucket.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Key(String);
@@ -333,6 +362,14 @@ impl Key {
     /// Consumes the key, returning the wrapped `String`.
     pub fn into_inner(self) -> String {
         self.0
+    }
+}
+
+impl FromStr for Key {
+    type Err = NameError;
+
+    fn from_str(raw: &str) -> Result<Self, Self::Err> {
+        Self::parse(raw)
     }
 }
 

@@ -257,6 +257,53 @@ pub struct Writer<P> {
     _position: PhantomData<P>,
 }
 
+impl Writer<Root> {
+    /// Starts an empty document.
+    pub fn new() -> Self {
+        Self {
+            output: String::new(),
+            _position: PhantomData,
+        }
+    }
+
+    /// Opens a bucket.
+    pub fn bucket(mut self, bucket: &Bucket) -> Writer<InBucket> {
+        self.output.push('[');
+        self.output.push_str(bucket.as_str());
+        self.output.push_str("]\n");
+
+        Writer {
+            output: self.output,
+            _position: PhantomData,
+        }
+    }
+
+    /// Finishes the document.
+    pub fn finish(self) -> String {
+        self.output
+    }
+}
+
+impl Writer<InBucket> {
+    /// Writes one entry into the open bucket.
+    pub fn entry(mut self, key: &Key, value: &Value) -> Self {
+        self.output.push_str(key.as_str());
+        self.output.push_str(" = ");
+        self.output.push_str(value.as_str());
+        self.output.push('\n');
+
+        self
+    }
+
+    /// Closes the open bucket.
+    pub fn end(self) -> Writer<Root> {
+        Writer {
+            output: self.output,
+            _position: PhantomData,
+        }
+    }
+}
+
 /// A writer between buckets.
 pub struct Root;
 
@@ -264,7 +311,7 @@ pub struct Root;
 pub struct InBucket;
 
 /// The name of a bucket.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Bucket(String);
 
 impl Bucket {
@@ -285,7 +332,7 @@ impl Bucket {
 }
 
 /// The name of a value within a bucket.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Key(String);
 
 impl Key {

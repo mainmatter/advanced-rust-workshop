@@ -56,39 +56,62 @@ impl Store {
     /// Inserts a value, returning the value it replaced, if any.
     pub fn insert(&mut self, bucket: &Bucket, key: &Key, value: &str) -> Option<String> {
         self.buckets
-            .entry(bucket.0.clone())
+            .entry(bucket.as_str().to_owned())
             .or_default()
-            .insert(key.0.clone(), value.to_owned())
+            .insert(key.as_str().to_owned(), value.to_owned())
     }
 
     /// Looks up a value.
     pub fn get(&self, bucket: &Bucket, key: &Key) -> Option<&str> {
-        self.buckets.get(&bucket.0)?.get(&key.0).map(String::as_str)
+        self.buckets
+            .get(bucket.as_str())?
+            .get(key.as_str())
+            .map(String::as_str)
     }
 
     /// Removes a value, returning it if it was there.
     pub fn remove(&mut self, bucket: &Bucket, key: &Key) -> Option<String> {
-        self.buckets.get_mut(&bucket.0)?.remove(&key.0)
+        self.buckets.get_mut(bucket.as_str())?.remove(key.as_str())
     }
 }
 
 /// The name of a bucket.
-pub struct Bucket(pub String);
+pub struct Bucket(String);
 
 impl Bucket {
     /// Parses a bucket name, rejecting anything `minidb` cannot store.
     pub fn parse(raw: &str) -> Result<Self, NameError> {
         parse_name(raw).map(Self)
     }
+
+    /// Borrows the bucket name.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    /// Consumes the bucket name, returning the wrapped `String`.
+    pub fn into_inner(self) -> String {
+        self.0
+    }
 }
 
 /// The name of a value within a bucket.
-pub struct Key(pub String);
+pub struct Key(String);
 
 impl Key {
     /// Parses a key, rejecting anything `minidb` cannot store.
     pub fn parse(raw: &str) -> Result<Self, NameError> {
         parse_name(raw).map(Self)
+    }
+
+    /// Borrows the key.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    /// Consumes the key, returning the wrapped `String`.
+    pub fn into_inner(self) -> String {
+        self.0
     }
 }
 

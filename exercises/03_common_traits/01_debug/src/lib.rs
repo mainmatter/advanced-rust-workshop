@@ -122,7 +122,7 @@ impl Value {
 
 impl Debug for Value {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        todo!()
+        write!(f, "Value(<redacted, {} bytes>)", self.0.len())
     }
 }
 

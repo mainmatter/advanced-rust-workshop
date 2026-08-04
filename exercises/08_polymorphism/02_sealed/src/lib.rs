@@ -70,6 +70,11 @@
 //! {
 //! }
 //! ```
+
+mod sealed {
+    pub trait Sealed {}
+}
+
 use std::{
     collections::HashMap,
     fmt::{self, Debug, Formatter},
@@ -204,14 +209,20 @@ impl Store {
 ///
 /// Changes take effect immediately. Until [`Transaction::commit`] is called, every one of them can
 /// still be taken back by [`Transaction::rollback`].
-pub struct Transaction<'store, A> {
+pub struct Transaction<'store, A>
+where
+    A: AccessMode,
+{
     store: &'store mut Store,
     undo: Vec<Undo>,
     finished: bool,
     _access: PhantomData<A>,
 }
 
-impl<A> Transaction<'_, A> {
+impl<A> Transaction<'_, A>
+where
+    A: AccessMode,
+{
     /// Looks up a value as part of this transaction.
     pub fn get(&self, bucket: &Bucket, key: &Key) -> Option<&Value> {
         self.store.get(bucket, key)
@@ -261,7 +272,10 @@ impl Transaction<'_, ReadWrite> {
     }
 }
 
-impl<A> Drop for Transaction<'_, A> {
+impl<A> Drop for Transaction<'_, A>
+where
+    A: AccessMode,
+{
     fn drop(&mut self) {
         if self.finished {
             return;
@@ -275,11 +289,24 @@ impl<A> Drop for Transaction<'_, A> {
     }
 }
 
+/// What a [`Transaction`] is allowed to do.
+///
+/// This trait is sealed: `minidb` defines every access mode there is.
+pub trait AccessMode: sealed::Sealed {}
+
 /// A transaction that may only read.
 pub struct ReadOnly;
 
+impl sealed::Sealed for ReadOnly {}
+
+impl AccessMode for ReadOnly {}
+
 /// A transaction that may read and write.
 pub struct ReadWrite;
+
+impl sealed::Sealed for ReadWrite {}
+
+impl AccessMode for ReadWrite {}
 
 /// A rendering of a [`Store`], one bucket and one entry at a time.
 ///
@@ -349,7 +376,10 @@ impl Format for Csv {
 }
 
 /// Renders a [`Store`] as text, one bucket at a time.
-pub struct Writer<P> {
+pub struct Writer<P>
+where
+    P: Position,
+{
     output: String,
     _position: PhantomData<P>,
 }
@@ -401,11 +431,24 @@ impl Writer<InBucket> {
     }
 }
 
+/// Where a [`Writer`] currently is in the document.
+///
+/// This trait is sealed: `minidb` defines every position there is.
+pub trait Position: sealed::Sealed {}
+
 /// A writer between buckets.
 pub struct Root;
 
+impl sealed::Sealed for Root {}
+
+impl Position for Root {}
+
 /// A writer inside a bucket.
 pub struct InBucket;
+
+impl sealed::Sealed for InBucket {}
+
+impl Position for InBucket {}
 
 /// Convenience methods on every iterator.
 pub trait IteratorExt: Iterator {

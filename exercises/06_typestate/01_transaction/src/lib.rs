@@ -75,7 +75,7 @@ impl Store {
     /// do not.
     pub fn transaction<F, T, E>(&mut self, changes: F) -> Result<T, E>
     where
-        F: FnOnce(&mut Transaction<'_>) -> Result<T, E>,
+        F: FnOnce(&mut Transaction<'_, ReadWrite>) -> Result<T, E>,
     {
         let mut tx = self.begin();
 
@@ -92,22 +92,22 @@ impl Store {
     }
 
     /// Starts a transaction, borrowing the store until it finishes.
-    pub fn begin(&mut self) -> Transaction<'_> {
+    pub fn begin(&mut self) -> Transaction<'_, ReadWrite> {
         Transaction {
             store: self,
             undo: Vec::new(),
             finished: false,
-            read_only: false,
+            _access: PhantomData,
         }
     }
 
     /// Starts a transaction that is only allowed to read.
-    pub fn begin_read(&mut self) -> Transaction<'_> {
+    pub fn begin_read(&mut self) -> Transaction<'_, ReadOnly> {
         Transaction {
             store: self,
             undo: Vec::new(),
             finished: true,
-            read_only: true,
+            _access: PhantomData,
         }
     }
 
@@ -147,30 +147,32 @@ impl Store {
 ///
 /// Changes take effect immediately. Until [`Transaction::commit`] is called, every one of them can
 /// still be taken back by [`Transaction::rollback`].
-pub struct Transaction<'store> {
+pub struct Transaction<'store, A> {
     store: &'store mut Store,
     undo: Vec<Undo>,
     finished: bool,
-    read_only: bool,
+    _access: PhantomData<A>,
 }
 
-impl Transaction<'_> {
+impl<A> Transaction<'_, A> {
     /// Looks up a value as part of this transaction.
     pub fn get(&self, bucket: &Bucket, key: &Key) -> Option<&Value> {
         self.store.get(bucket, key)
     }
 
-    /// Inserts a value as part of this transaction.
-    ///
-    /// # Panics
-    ///
-    /// Panics if this transaction was started with [`Store::begin_read`].
-    pub fn insert(&mut self, bucket: Bucket, key: Key, value: Value) {
-        assert!(
-            !self.read_only,
-            "cannot write through a read-only transaction"
-        );
+    fn undo_everything(&mut self) {
+        for undo in mem::take(&mut self.undo).into_iter().rev() {
+            match undo.previous {
+                Some(value) => self.store.insert(undo.bucket, undo.key, value),
+                None => self.store.remove(&undo.bucket, &undo.key),
+            };
+        }
+    }
+}
 
+impl Transaction<'_, ReadWrite> {
+    /// Inserts a value as part of this transaction.
+    pub fn insert(&mut self, bucket: Bucket, key: Key, value: Value) {
         let previous = self.store.insert(bucket.clone(), key.clone(), value);
         self.undo.push(Undo {
             bucket,
@@ -180,16 +182,7 @@ impl Transaction<'_> {
     }
 
     /// Removes a value as part of this transaction.
-    ///
-    /// # Panics
-    ///
-    /// Panics if this transaction was started with [`Store::begin_read`].
     pub fn remove(&mut self, bucket: Bucket, key: Key) {
-        assert!(
-            !self.read_only,
-            "cannot write through a read-only transaction"
-        );
-
         let previous = self.store.remove(&bucket, &key);
         self.undo.push(Undo {
             bucket,
@@ -209,18 +202,9 @@ impl Transaction<'_> {
         self.finished = true;
         self.undo_everything();
     }
-
-    fn undo_everything(&mut self) {
-        for undo in mem::take(&mut self.undo).into_iter().rev() {
-            match undo.previous {
-                Some(value) => self.store.insert(undo.bucket, undo.key, value),
-                None => self.store.remove(&undo.bucket, &undo.key),
-            };
-        }
-    }
 }
 
-impl Drop for Transaction<'_> {
+impl<A> Drop for Transaction<'_, A> {
     fn drop(&mut self) {
         if self.finished {
             return;

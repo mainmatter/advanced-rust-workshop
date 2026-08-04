@@ -311,6 +311,22 @@ pub struct Root;
 /// A writer inside a bucket.
 pub struct InBucket;
 
+/// Convenience methods on every iterator.
+pub trait IteratorExt: Iterator {
+    /// Collects into a `Vec` and sorts it.
+    fn collect_sorted(self) -> Vec<Self::Item>
+    where
+        Self: Sized,
+        Self::Item: Ord,
+    {
+        let mut items = self.collect::<Vec<_>>();
+        items.sort();
+        items
+    }
+}
+
+impl<I> IteratorExt for I where I: Iterator {}
+
 /// The name of a bucket.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Bucket(String);

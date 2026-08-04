@@ -65,11 +65,8 @@ impl Store {
     }
 
     /// Inserts a value, returning the value it replaced, if any.
-    pub fn insert(&mut self, bucket: &Bucket, key: &Key, value: Value) -> Option<Value> {
-        self.buckets
-            .entry(bucket.clone())
-            .or_default()
-            .insert(key.clone(), value)
+    pub fn insert(&mut self, bucket: Bucket, key: Key, value: Value) -> Option<Value> {
+        self.buckets.entry(bucket).or_default().insert(key, value)
     }
 
     /// Looks up a value.
