@@ -1,6 +1,6 @@
 # Summary
 
-- [Welcome](00_intro/00_welcome.md)
+[Welcome](00_intro/00_welcome.md)
 
 - [Names and docs](01_api_design/00_intro.md)
   - [Naming conventions](01_api_design/01_naming.md)
