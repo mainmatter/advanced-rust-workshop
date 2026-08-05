@@ -255,8 +255,8 @@ mod tests {
         let users = Bucket::parse("users").unwrap();
         let id = Key::parse("42").unwrap();
 
-        let mut txn = store.begin();
-        txn.insert(&users, &id, Value::new("Alice"));
+        let mut tx = store.begin();
+        tx.insert(&users, &id, Value::new("Alice"));
     }
 
     #[test]
@@ -265,9 +265,9 @@ mod tests {
         let users = Bucket::parse("users").unwrap();
         let id = Key::parse("42").unwrap();
 
-        let mut txn = store.begin();
-        txn.insert(&users, &id, Value::new("Alice"));
-        txn.commit();
+        let mut tx = store.begin();
+        tx.insert(&users, &id, Value::new("Alice"));
+        tx.commit();
 
         assert_eq!(store.get(&users, &id).map(Value::as_str), Some("Alice"));
     }
@@ -278,9 +278,9 @@ mod tests {
         let users = Bucket::parse("users").unwrap();
         let id = Key::parse("42").unwrap();
 
-        let mut txn = store.begin();
-        txn.insert(&users, &id, Value::new("Alice"));
-        txn.rollback();
+        let mut tx = store.begin();
+        tx.insert(&users, &id, Value::new("Alice"));
+        tx.rollback();
 
         assert_eq!(store.get(&users, &id).map(Value::as_str), None);
     }
@@ -292,8 +292,8 @@ mod tests {
         let id = Key::parse("42").unwrap();
 
         let outcome = panic::catch_unwind(AssertUnwindSafe(|| {
-            let mut txn = store.begin();
-            txn.insert(&users, &id, Value::new("Alice"));
+            let mut tx = store.begin();
+            tx.insert(&users, &id, Value::new("Alice"));
         }));
 
         assert!(outcome.is_err());
@@ -307,8 +307,8 @@ mod tests {
         let id = Key::parse("42").unwrap();
 
         let outcome = panic::catch_unwind(AssertUnwindSafe(|| {
-            let mut txn = store.begin();
-            txn.insert(&users, &id, Value::new("Alice"));
+            let mut tx = store.begin();
+            tx.insert(&users, &id, Value::new("Alice"));
             panic!("the original problem");
         }));
 

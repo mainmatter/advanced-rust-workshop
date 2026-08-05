@@ -232,8 +232,8 @@ mod tests {
         let id = Key::parse("42").unwrap();
 
         {
-            let mut txn = store.begin();
-            txn.insert(&users, &id, Value::new("Alice"));
+            let mut tx = store.begin();
+            tx.insert(&users, &id, Value::new("Alice"));
         }
 
         assert_eq!(store.get(&users, &id).map(Value::as_str), None);
@@ -245,9 +245,9 @@ mod tests {
         let users = Bucket::parse("users").unwrap();
         let id = Key::parse("42").unwrap();
 
-        let mut txn = store.begin();
-        txn.insert(&users, &id, Value::new("Alice"));
-        txn.commit();
+        let mut tx = store.begin();
+        tx.insert(&users, &id, Value::new("Alice"));
+        tx.commit();
 
         assert_eq!(store.get(&users, &id).map(Value::as_str), Some("Alice"));
     }
@@ -258,9 +258,9 @@ mod tests {
         let users = Bucket::parse("users").unwrap();
         let id = Key::parse("42").unwrap();
 
-        let mut txn = store.begin();
-        txn.insert(&users, &id, Value::new("Alice"));
-        txn.rollback();
+        let mut tx = store.begin();
+        tx.insert(&users, &id, Value::new("Alice"));
+        tx.rollback();
 
         assert_eq!(store.get(&users, &id).map(Value::as_str), None);
     }
@@ -273,10 +273,10 @@ mod tests {
         store.insert(&users, &id, Value::new("Alice"));
 
         {
-            let mut txn = store.begin();
-            txn.insert(&users, &id, Value::new("Bob"));
-            txn.insert(&users, &id, Value::new("Carol"));
-            txn.remove(&users, &id);
+            let mut tx = store.begin();
+            tx.insert(&users, &id, Value::new("Bob"));
+            tx.insert(&users, &id, Value::new("Carol"));
+            tx.remove(&users, &id);
         }
 
         assert_eq!(store.get(&users, &id).map(Value::as_str), Some("Alice"));
@@ -297,13 +297,13 @@ mod tests {
     }
 
     fn write_both(store: &mut Store, bucket: &Bucket, first: &Key, second: &Key) -> Result<(), ()> {
-        let mut txn = store.begin();
-        txn.insert(bucket, first, Value::new("Alice"));
+        let mut tx = store.begin();
+        tx.insert(bucket, first, Value::new("Alice"));
 
         let second_value = fetch_the_other_value()?;
 
-        txn.insert(bucket, second, second_value);
-        txn.commit();
+        tx.insert(bucket, second, second_value);
+        tx.commit();
 
         Ok(())
     }

@@ -53,15 +53,15 @@ impl Store {
     where
         F: FnOnce(&mut Transaction<'_, ReadWrite>) -> Result<T, E>,
     {
-        let mut txn = self.begin();
+        let mut tx = self.begin();
 
-        match changes(&mut txn) {
+        match changes(&mut tx) {
             Ok(value) => {
-                txn.commit();
+                tx.commit();
                 Ok(value)
             }
             Err(error) => {
-                txn.rollback();
+                tx.rollback();
                 Err(error)
             }
         }

@@ -75,15 +75,15 @@ impl Store {
     where
         F: FnOnce(&mut Transaction<'_, ReadWrite>) -> Result<T, E>,
     {
-        let mut txn = self.begin();
+        let mut tx = self.begin();
 
-        match changes(&mut txn) {
+        match changes(&mut tx) {
             Ok(value) => {
-                txn.commit();
+                tx.commit();
                 Ok(value)
             }
             Err(error) => {
-                txn.rollback();
+                tx.rollback();
                 Err(error)
             }
         }
@@ -545,16 +545,16 @@ mod tests {
         let id = Key::parse("42").unwrap();
 
         store
-            .transaction(|txn| {
-                txn.insert(users.clone(), id.clone(), Value::new("Alice"));
+            .transaction(|tx| {
+                tx.insert(users.clone(), id.clone(), Value::new("Alice"));
                 Ok::<_, ()>(())
             })
             .unwrap();
 
-        let txn = store.begin_read();
+        let tx = store.begin_read();
 
-        assert_eq!(txn.get(&users, &id).map(Value::as_str), Some("Alice"));
-        drop(txn);
+        assert_eq!(tx.get(&users, &id).map(Value::as_str), Some("Alice"));
+        drop(tx);
 
         assert_eq!(store.export_with(Ini::default()), "[users]\n42 = Alice\n");
     }

@@ -261,8 +261,8 @@ mod tests {
         let users = Bucket::parse("users").unwrap();
         let id = Key::parse("42").unwrap();
 
-        let outcome = store.transaction(|txn| {
-            txn.insert(&users, &id, Value::new("Alice"));
+        let outcome = store.transaction(|tx| {
+            tx.insert(&users, &id, Value::new("Alice"));
             Ok::<_, Rejected>(7)
         });
 
@@ -277,9 +277,9 @@ mod tests {
         let alice = Key::parse("42").unwrap();
         let bob = Key::parse("43").unwrap();
 
-        let outcome = store.transaction(|txn| {
-            txn.insert(&users, &alice, Value::new("Alice"));
-            txn.insert(&users, &bob, Value::new("Bob"));
+        let outcome = store.transaction(|tx| {
+            tx.insert(&users, &alice, Value::new("Alice"));
+            tx.insert(&users, &bob, Value::new("Bob"));
             Err::<(), _>(Rejected)
         });
 
@@ -294,10 +294,10 @@ mod tests {
         let users = Bucket::parse("users").unwrap();
         let id = Key::parse("42").unwrap();
 
-        let outcome = store.transaction(|txn| {
-            txn.insert(&users, &id, Value::new("Alice"));
+        let outcome = store.transaction(|tx| {
+            tx.insert(&users, &id, Value::new("Alice"));
             let value = rejected()?;
-            txn.insert(&users, &id, value);
+            tx.insert(&users, &id, value);
             Ok(())
         });
 
@@ -312,8 +312,8 @@ mod tests {
         let id = Key::parse("42").unwrap();
 
         let outcome = panic::catch_unwind(AssertUnwindSafe(|| {
-            store.transaction::<_, (), Rejected>(|txn| {
-                txn.insert(&users, &id, Value::new("Alice"));
+            store.transaction::<_, (), Rejected>(|tx| {
+                tx.insert(&users, &id, Value::new("Alice"));
                 panic!("the original problem");
             })
         }));
@@ -331,8 +331,8 @@ mod tests {
         let users = Bucket::parse("users").unwrap();
         let id = Key::parse("42").unwrap();
 
-        let mut txn = store.begin();
-        txn.insert(&users, &id, Value::new("Alice"));
+        let mut tx = store.begin();
+        tx.insert(&users, &id, Value::new("Alice"));
     }
 
     #[derive(Debug, PartialEq, Eq)]

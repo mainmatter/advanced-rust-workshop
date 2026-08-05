@@ -29,12 +29,12 @@
 //! let users = Bucket::parse("users").unwrap();
 //! let id = Key::parse("42").unwrap();
 //!
-//! let mut txn = store.begin();
-//! txn.insert(&users, &id, Value::new("Alice"));
+//! let mut tx = store.begin();
+//! tx.insert(&users, &id, Value::new("Alice"));
 //!
 //! store.get(&users, &id);
 //!
-//! txn.commit();
+//! tx.commit();
 //! ```
 //!
 //! Committing the same transaction twice:
@@ -43,10 +43,10 @@
 //! use borrow_checker_intro::Store;
 //!
 //! let mut store = Store::new();
-//! let txn = store.begin();
+//! let tx = store.begin();
 //!
-//! txn.commit();
-//! txn.commit();
+//! tx.commit();
+//! tx.commit();
 //! ```
 
 use std::collections::HashMap;
@@ -75,15 +75,15 @@ impl Store {
     where
         F: FnOnce(&mut Transaction<'_>) -> Result<T, E>,
     {
-        let mut txn = self.begin();
+        let mut tx = self.begin();
 
-        match changes(&mut txn) {
+        match changes(&mut tx) {
             Ok(value) => {
-                txn.commit();
+                tx.commit();
                 Ok(value)
             }
             Err(error) => {
-                txn.rollback();
+                tx.rollback();
                 Err(error)
             }
         }
@@ -309,15 +309,15 @@ mod tests {
         let id = Key::parse("42").unwrap();
 
         store
-            .transaction(|txn| {
-                txn.insert(&users, &id, Value::new("Alice"));
+            .transaction(|tx| {
+                tx.insert(&users, &id, Value::new("Alice"));
                 Ok::<_, ()>(())
             })
             .unwrap();
 
         store
-            .transaction(|txn| {
-                txn.insert(&users, &id, Value::new("Bob"));
+            .transaction(|tx| {
+                tx.insert(&users, &id, Value::new("Bob"));
                 Ok::<_, ()>(())
             })
             .unwrap();

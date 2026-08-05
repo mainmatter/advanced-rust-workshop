@@ -38,15 +38,15 @@ impl Store {
     where
         F: FnOnce(&mut Transaction<'_>) -> Result<T, E>,
     {
-        let mut txn = self.begin();
+        let mut tx = self.begin();
 
-        match changes(&mut txn) {
+        match changes(&mut tx) {
             Ok(value) => {
-                txn.commit();
+                tx.commit();
                 Ok(value)
             }
             Err(error) => {
-                txn.rollback();
+                tx.rollback();
                 Err(error)
             }
         }
@@ -315,9 +315,9 @@ mod tests {
         let id = Key::parse("42").unwrap();
         store.insert(users.clone(), id.clone(), Value::new("Alice"));
 
-        let txn = store.begin_read();
+        let tx = store.begin_read();
 
-        assert_eq!(txn.get(&users, &id).map(Value::as_str), Some("Alice"));
+        assert_eq!(tx.get(&users, &id).map(Value::as_str), Some("Alice"));
     }
 
     #[test]
@@ -327,8 +327,8 @@ mod tests {
         let users = Bucket::parse("users").unwrap();
         let id = Key::parse("42").unwrap();
 
-        let mut txn = store.begin_read();
+        let mut tx = store.begin_read();
 
-        txn.insert(users, id, Value::new("Alice"));
+        tx.insert(users, id, Value::new("Alice"));
     }
 }

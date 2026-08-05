@@ -3,9 +3,9 @@
 `minidb` has transactions now:
 
 ```rust
-let mut txn = store.begin();
-txn.insert(&users, &id, Value::new("Alice"));
-txn.commit();
+let mut tx = store.begin();
+tx.insert(&users, &id, Value::new("Alice"));
+tx.commit();
 ```
 
 Each change is applied to the store as it happens, and the transaction records how to undo it, so
@@ -15,13 +15,13 @@ There is one obvious way to get this wrong, and everybody does:
 
 ```rust
 fn write_both(store: &mut Store) -> Result<(), Error> {
-    let mut txn = store.begin();
-    txn.insert(&users, &alice, Value::new("Alice"))?;
+    let mut tx = store.begin();
+    tx.insert(&users, &alice, Value::new("Alice"))?;
 
     let value = fetch_the_other_value()?;   // returns early
 
-    txn.insert(&users, &bob, value);
-    txn.commit();
+    tx.insert(&users, &bob, value);
+    tx.commit();
     Ok(())
 }
 ```

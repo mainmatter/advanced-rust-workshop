@@ -12,15 +12,15 @@ impl Store {
     where
         F: FnOnce(&mut Transaction<'_>) -> Result<T, E>,
     {
-        let mut txn = self.begin();
+        let mut tx = self.begin();
 
-        match changes(&mut txn) {
+        match changes(&mut tx) {
             Ok(value) => {
-                txn.commit();
+                tx.commit();
                 Ok(value)
             }
             Err(error) => {
-                txn.rollback();
+                tx.rollback();
                 Err(error)
             }
         }
@@ -31,10 +31,10 @@ impl Store {
 The caller never holds a `Transaction` they are responsible for:
 
 ```rust
-store.transaction(|txn| {
-    txn.insert(&users, &alice, Value::new("Alice"));
+store.transaction(|tx| {
+    tx.insert(&users, &alice, Value::new("Alice"));
     let value = fetch_the_other_value()?;      // early return rolls back
-    txn.insert(&users, &bob, value);
+    tx.insert(&users, &bob, value);
     Ok(())
 })?;
 ```

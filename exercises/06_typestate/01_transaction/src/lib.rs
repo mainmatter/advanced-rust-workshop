@@ -25,8 +25,8 @@
 //! let users = Bucket::parse("users").unwrap();
 //! let id = Key::parse("42").unwrap();
 //!
-//! let mut txn = store.begin_read();
-//! txn.insert(users, id, Value::new("Alice"));
+//! let mut tx = store.begin_read();
+//! tx.insert(users, id, Value::new("Alice"));
 //! ```
 //!
 //! and committing one, because a transaction that cannot write has nothing to commit:
@@ -36,8 +36,8 @@
 //!
 //! let mut store = Store::new();
 //!
-//! let txn = store.begin_read();
-//! txn.commit();
+//! let tx = store.begin_read();
+//! tx.commit();
 //! ```
 //!
 //! This exercise starts out **not compiling**: the tests name the new types.
@@ -69,15 +69,15 @@ impl Store {
     where
         F: FnOnce(&mut Transaction<'_>) -> Result<T, E>,
     {
-        let mut txn = self.begin();
+        let mut tx = self.begin();
 
-        match changes(&mut txn) {
+        match changes(&mut tx) {
             Ok(value) => {
-                txn.commit();
+                tx.commit();
                 Ok(value)
             }
             Err(error) => {
-                txn.rollback();
+                tx.rollback();
                 Err(error)
             }
         }
@@ -359,9 +359,9 @@ mod tests {
         let id = Key::parse("42").unwrap();
         store.insert(users.clone(), id.clone(), Value::new("Alice"));
 
-        let txn = store.begin_read();
+        let tx = store.begin_read();
 
-        assert_eq!(report(&txn, &users, &id), Some("Alice".to_owned()));
+        assert_eq!(report(&tx, &users, &id), Some("Alice".to_owned()));
     }
 
     #[test]
@@ -370,12 +370,12 @@ mod tests {
         let users = Bucket::parse("users").unwrap();
         let id = Key::parse("42").unwrap();
 
-        let mut txn = store.begin();
-        write_one(&mut txn, users.clone(), id.clone(), Value::new("Alice"));
+        let mut tx = store.begin();
+        write_one(&mut tx, users.clone(), id.clone(), Value::new("Alice"));
 
-        assert_eq!(txn.get(&users, &id).map(Value::as_str), Some("Alice"));
+        assert_eq!(tx.get(&users, &id).map(Value::as_str), Some("Alice"));
 
-        txn.commit();
+        tx.commit();
 
         assert_eq!(store.get(&users, &id).map(Value::as_str), Some("Alice"));
     }
@@ -394,8 +394,8 @@ mod tests {
         let id = Key::parse("42").unwrap();
 
         store
-            .transaction(|txn| {
-                txn.insert(users.clone(), id.clone(), Value::new("Alice"));
+            .transaction(|tx| {
+                tx.insert(users.clone(), id.clone(), Value::new("Alice"));
                 Ok::<_, ()>(())
             })
             .unwrap();
@@ -403,11 +403,11 @@ mod tests {
         assert_eq!(store.get(&users, &id).map(Value::as_str), Some("Alice"));
     }
 
-    fn report(txn: &Transaction<'_, ReadOnly>, bucket: &Bucket, key: &Key) -> Option<String> {
-        txn.get(bucket, key).map(|value| value.as_str().to_owned())
+    fn report(tx: &Transaction<'_, ReadOnly>, bucket: &Bucket, key: &Key) -> Option<String> {
+        tx.get(bucket, key).map(|value| value.as_str().to_owned())
     }
 
-    fn write_one(txn: &mut Transaction<'_, ReadWrite>, bucket: Bucket, key: Key, value: Value) {
-        txn.insert(bucket, key, value);
+    fn write_one(tx: &mut Transaction<'_, ReadWrite>, bucket: Bucket, key: Key, value: Value) {
+        tx.insert(bucket, key, value);
     }
 }

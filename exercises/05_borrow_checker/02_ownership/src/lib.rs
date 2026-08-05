@@ -73,15 +73,15 @@ impl Store {
     where
         F: FnOnce(&mut Transaction<'_>) -> Result<T, E>,
     {
-        let mut txn = self.begin();
+        let mut tx = self.begin();
 
-        match changes(&mut txn) {
+        match changes(&mut tx) {
             Ok(value) => {
-                txn.commit();
+                tx.commit();
                 Ok(value)
             }
             Err(error) => {
-                txn.rollback();
+                tx.rollback();
                 Err(error)
             }
         }
@@ -345,8 +345,8 @@ mod tests {
         let id = Key::parse("42").unwrap();
 
         store
-            .transaction(|txn| {
-                txn.insert(users.clone(), id.clone(), Value::new("Alice"));
+            .transaction(|tx| {
+                tx.insert(users.clone(), id.clone(), Value::new("Alice"));
                 Ok::<_, ()>(())
             })
             .unwrap();
@@ -361,9 +361,9 @@ mod tests {
         let id = Key::parse("42").unwrap();
         store.insert(users.clone(), id.clone(), Value::new("Alice"));
 
-        let outcome = store.transaction(|txn| {
-            txn.insert(users.clone(), id.clone(), Value::new("Bob"));
-            txn.remove(users.clone(), id.clone());
+        let outcome = store.transaction(|tx| {
+            tx.insert(users.clone(), id.clone(), Value::new("Bob"));
+            tx.remove(users.clone(), id.clone());
             Err::<(), _>("no")
         });
 
