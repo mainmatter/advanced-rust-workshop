@@ -101,30 +101,3 @@ pretending otherwise.
 The practical consequence: **you cannot use `Drop` to enforce a safety invariant**. It is a
 convenience and a very good default, not a proof. If correctness depends on cleanup happening, the
 cleanup has to be on the only path that reaches the result, which is what the next section is about.
-
-## Scope guards
-
-The general form of a drop guard is worth having in your pocket:
-
-```rust
-pub struct ScopeGuard<F: FnOnce()> {
-    action: Option<F>,
-}
-
-impl<F> Drop for ScopeGuard<F>
-where
-    F: FnOnce(),
-{
-    fn drop(&mut self) {
-        if let Some(action) = self.action.take() {
-            action();
-        }
-    }
-}
-```
-
-An `Option` so the closure can be moved out of `&mut self`, and a `dismiss` method that takes it
-without calling it. This is `defer` from Go, except that it fires at end of scope rather than end of
-function, and it composes properly with early returns. The
-[`scopeguard`](https://docs.rs/scopeguard) crate is the version you should actually use, and reading
-its source takes five minutes.
