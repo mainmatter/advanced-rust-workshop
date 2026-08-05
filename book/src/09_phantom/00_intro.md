@@ -38,8 +38,7 @@ observable effect until it does, and then it is the entire trick behind the last
 Two exercises, both of them the same move: **use a marker to claim a relationship the data does not
 have.**
 
-1. A handle that owns its data and borrows nothing, made to behave exactly like a borrow. This is how
-   `BorrowedFd` works, and it is the promise from chapter 5.
+1. A handle that owns its data and borrows nothing, made to behave exactly like a borrow.
 2. A lifetime that no other code can name, used to make one store's keys unusable with another. This
    is `GhostCell`, and it is the most exotic thing in the day.
 

@@ -25,24 +25,7 @@ applies for free:
 
 None of that is code you wrote. It is one field of a type that occupies no space.
 
-## The real example
-
-This is exactly how `BorrowedFd` is built:
-
-```rust
-pub struct BorrowedFd<'fd> {
-    fd: RawFd,                          // an i32
-    _phantom: PhantomData<&'fd OwnedFd>,
-}
-```
-
-A file descriptor is a small integer. Nothing about the number 7 says which `OwnedFd` produced it or
-whether that `OwnedFd` has since closed it. Using a closed descriptor is a genuine security bug, not
-just a wrong answer: the number can be reused by an unrelated `open` in another thread, and your
-write goes somewhere it should not.
-
-The `PhantomData` turns "please do not use this after closing" into a borrow check. The number is
-still just a number; the type is what makes the misuse impossible.
+## Where else this shows up
 
 Once you know the shape you find it in every wrapper over a foreign resource: an index into an arena,
 a row id from a database handle, a `slab` key, a GPU buffer handle. Anywhere the value is a plain

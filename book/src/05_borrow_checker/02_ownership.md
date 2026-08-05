@@ -65,13 +65,12 @@ is overkill almost everywhere else. Reach for it when profiling says so, not bef
 The larger version of this idea is that many domains want a **pair** of types: one that owns and one
 that borrows.
 
-| Owns       | Views            | Notes                                     |
-| ---------- | ---------------- | ----------------------------------------- |
-| `String`   | `&str`           | the original                              |
-| `PathBuf`  | `&Path`          | unsized view, not just a reference        |
-| `Vec<T>`   | `&[T]`           |                                           |
-| `OsString` | `&OsStr`         |                                           |
-| `OwnedFd`  | `BorrowedFd<'_>` | the view carries a lifetime but is `Copy` |
+| Owns       | Views    | Notes                              |
+| ---------- | -------- | ---------------------------------- |
+| `String`   | `&str`   | the original                       |
+| `PathBuf`  | `&Path`  | unsized view, not just a reference |
+| `Vec<T>`   | `&[T]`   |                                    |
+| `OsString` | `&OsStr` |                                    |
 
 The convention that falls out of it, and it is one of the most reliable rules in Rust API design:
 
@@ -86,8 +85,3 @@ nothing for the restriction. The same argument applies to `&[T]` over `&Vec<T>`,
 thin wrapper and a shared reference to it is a perfectly good view. The pattern earns its keep when
 the owned type has structure the view does not need, which is exactly why `Path` exists and
 `&PathBuf` is a code smell.
-
-`OwnedFd` and `BorrowedFd` are the version worth studying if you write anything that wraps a resource
-with a lifetime, because there the distinction is about who closes the file descriptor, and getting it
-wrong is a use-after-close rather than a wasted allocation. We come back to how `BorrowedFd` is built
-in the last chapter.

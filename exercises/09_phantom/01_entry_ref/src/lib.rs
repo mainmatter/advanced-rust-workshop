@@ -56,11 +56,6 @@
 //! let _ = escaped;
 //! ```
 //!
-//! This is how `BorrowedFd<'_>` works, and it is the promise from chapter 5. A file descriptor is an
-//! `i32`. `BorrowedFd` wraps that `i32` and adds `PhantomData<&'fd OwnedFd>`, so the borrow checker
-//! stops you using a descriptor after the `OwnedFd` that owns it has closed it. The number would have
-//! been perfectly valid. The type is what makes it a use-after-close.
-//!
 //! This exercise starts out **not compiling**: the tests call `entry_ref` and `read`, which do not
 //! exist yet.
 
