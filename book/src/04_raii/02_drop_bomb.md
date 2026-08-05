@@ -46,6 +46,38 @@ Some crates go further and only arm the bomb in debug builds, on the grounds tha
 production process over a bookkeeping mistake is worse than the mistake. That is a judgement call
 about who is running the code.
 
+## When not to arm it
+
+[`sqlx`](https://docs.rs/sqlx) is the counterexample worth knowing, because it is the same domain. Its
+`Transaction` implements `Drop` and rolls back silently: if neither `commit` nor `rollback` is called
+before the transaction goes out of scope, the changes are undone and nothing is said. A plain guard,
+and a deliberate refusal to take the next step.
+
+The reason is that dropping a transaction _means_ something there. Abandoning one on the error path is
+the idiom: you write `?` after each query, and the abandonment is the abort. A bomb would fire on
+correct code. Async sharpens the same point well beyond databases, because dropping a future is an
+ordinary event. A timeout fires, a `select!` branch loses, a request is cancelled, and everything in
+that future's state is dropped without anyone having done anything wrong. A destructor cannot tell
+cancellation from forgetting, so an armed bomb would turn every timeout into a process abort.
+
+`sqlx` does not even roll back in `drop`, for that matter. `Drop` is synchronous and a rollback needs
+I/O, so it marks the connection and the `ROLLBACK` goes out when that connection is next used or
+returned to the pool. A guard that is already best-effort and deferred is the wrong place to assert
+anything.
+
+So the test is: **arm the bomb only where dropping without a decision has no legitimate meaning.**
+
+`rust-analyzer`'s parser passes it. Its `Marker` must be completed or abandoned, forgetting is
+unambiguously a bug, it is all one codebase, and the panic lands in a developer's own test run rather
+than in a user's server. That is what matklad's [`drop_bomb`](https://docs.rs/drop_bomb) crate is for,
+and it is where the name comes from.
+
+`minidb` passes it too, but only because of where this chapter is going. Arming the bomb changes what
+the `?` in `write_both` does: the early return we opened with now panics instead of quietly rolling
+back. If `begin` were the interface we shipped, that would be a hard sell. It is not. The next section
+puts a closure API in front of it that makes the decision itself, which leaves the bomb armed for the
+callers who need the raw form and off the path everybody else takes.
+
 ## Drop is a strong default, not a guarantee
 
 It is genuinely possible for a destructor never to run, and leaking is **safe** in Rust: it is not
