@@ -3,10 +3,13 @@
 //! Add a bulk delete:
 //!
 //! ```text
-//! Store::retain<F>(&mut self, predicate: F)
+//! Store::retain<F>(&mut self, mut predicate: F)
 //! where
 //!     F: FnMut(&Bucket, &Key, &Value) -> bool,
 //! ```
+//!
+//! The `mut` on `predicate` is there because calling an `FnMut` needs a mutable binding, whichever
+//! way you go about the rest.
 //!
 //! Every value the predicate rejects is removed, and a bucket left holding nothing disappears with
 //! it, so it stops showing up in `buckets()`.
@@ -100,7 +103,7 @@ impl Store {
     }
 
     /// Keeps only the values the predicate accepts, dropping any bucket left empty.
-    pub fn retain<F>(&mut self, predicate: F)
+    pub fn retain<F>(&mut self, mut predicate: F)
     where
         F: FnMut(&Bucket, &Key, &Value) -> bool,
     {
