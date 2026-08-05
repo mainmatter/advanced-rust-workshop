@@ -22,7 +22,12 @@
 //! ```
 //!
 //! and make the existing `export` delegate to `export_with(Ini::default())`, so its tests keep
-//! passing. Both new methods walk buckets and keys in sorted order, exactly as `export` already does.
+//! passing.
+//!
+//! Both new methods walk buckets and keys in sorted order, exactly as `export` already does. Write
+//! that walk **once**, in a private `render(&self, format: &mut dyn Format) -> String`, and make both
+//! public methods one line each. `export_with` is generic, so the compiler copies its body per format:
+//! keep that body as small as you can and let the copies share the real work.
 //!
 //! Note what the trait signature is *not*. `fn finish(self) -> String` would read better, and it would
 //! make the trait dyn-incompatible: a trait object has no size, so a method taking `self` by value has

@@ -66,21 +66,57 @@ The performance argument is the one people reach for first and it is usually the
 a function that walks a `HashMap` and pushes to a `String`, the vtable call does not appear in a
 profile.
 
-## Generic over the wrong thing
+## Monomorphise the signature, not the body
 
-One trap worth naming. This is generic:
-
-```rust
-fn export_with<F: Format>(&self, format: F) -> String
-```
-
-and this is not:
+`export_with` is generic, so the compiler stamps out one copy per format. What goes inside that copy
+is your choice, and the obvious version duplicates far too much:
 
 ```rust
-fn render(&self, format: &mut dyn Format) -> String
+pub fn export_with<F>(&self, mut format: F) -> String
+where
+    F: Format,
+{
+    let mut buckets = self.buckets.iter().collect::<Vec<_>>();
+    buckets.sort_by(|(left, _), (right, _)| left.cmp(right));
+
+    for (bucket, values) in buckets {
+        format.bucket(bucket);
+        // sort this bucket's entries, walk them, call format.entry
+    }
+
+    format.finish()
+}
 ```
 
-`export_with` delegates to `render`, so the monomorphised code is tiny: one wrapper per format,
-sharing one real implementation. That is a useful pattern when the generic surface is for ergonomics
-and the body is large: keep the generic function thin and put the work in a `dyn` function. It cuts
-compile time and binary size while leaving the nice signature in place.
+Every line of that is copied per format, and every copy is identical except the three calls through
+`format`. Two formats, two sorts, two loops. Add a third and you pay again.
+
+Split it instead, and put the work behind `&mut dyn`:
+
+```rust
+pub fn export_with<F>(&self, mut format: F) -> String
+where
+    F: Format,
+{
+    self.render(&mut format)
+}
+
+pub fn export_into(&self, format: &mut dyn Format) -> String {
+    self.render(format)
+}
+
+fn render(&self, format: &mut dyn Format) -> String {
+    // the sorting and the walking, once
+}
+```
+
+The generic part is now one line. `render` exists once in the binary however many formats there are,
+both public methods are thin wrappers over it, and `export_into` gets the whole thing for free.
+
+**When the generic parameter is there for the caller's ergonomics and the body is large, keep the
+generic function thin and put the work behind `&mut dyn`.** You keep the signature you wanted and stop
+paying for it per instantiation.
+
+This is the cost worth managing. The previous section said the vtable call does not show up in a
+profile, and it does not. Compile time and binary size do show up, and monomorphisation is what spends
+them.
