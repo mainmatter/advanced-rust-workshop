@@ -1,6 +1,6 @@
 # States as capabilities
 
-The mechanics are small. Three pieces.
+The mechanics are small. Two pieces.
 
 **Marker types.** Zero-sized structs whose only job is to be distinct:
 
@@ -9,22 +9,10 @@ pub struct ReadOnly;
 pub struct ReadWrite;
 ```
 
-**A trait to group them**, so `Transaction<u32>` cannot be written:
-
-```rust
-pub trait State {}
-
-impl State for ReadOnly {}
-impl State for ReadWrite {}
-```
-
 **`PhantomData`** to use a type parameter you store no value of:
 
 ```rust
-pub struct Transaction<'store, S>
-where
-    S: State,
-{
+pub struct Transaction<'store, S> {
     store: &'store mut Store,
     undo: Vec<Undo>,
     finished: bool,
@@ -40,10 +28,7 @@ have.
 Then split the methods:
 
 ```rust
-impl<S> Transaction<'_, S>
-where
-    S: State,
-{
+impl<S> Transaction<'_, S> {
     pub fn get(&self, ..) -> Option<&Value> { .. }      // every state
 }
 
@@ -55,23 +40,23 @@ impl Transaction<'_, ReadWrite> {
 
 ## Two things that will catch you
 
-**`Drop` must match the struct exactly.** If the struct says `where S: State`, so must the `Drop`
-impl, and it cannot add a bound the struct does not have:
+**`Drop` must match the struct exactly.** A `Drop` impl has to repeat its struct's bounds, and it
+cannot add one the struct does not have. Our struct has none, so neither may the destructor:
 
 ```rust
-impl<S> Drop for Transaction<'_, S>
-where
-    S: State,          // must be identical to the struct's bounds
-{ .. }
+impl<S> Drop for Transaction<'_, S> { .. }      // add `where S: ..` here and you get E0367
 ```
 
-This is why you cannot write a `Drop` impl for only one state. If different states need different
+Chapter 8 adds a bound to the struct, and all three sites, struct, shared impl and `Drop`, have to
+gain it together.
+
+This is also why you cannot write a `Drop` impl for only one state. If different states need different
 destructor behaviour, the difference has to live in a field, which is exactly what `finished` does
 here: a read-only transaction is born finished, so the drop bomb never arms for it.
 
-**The trait should be sealed.** As written, a downstream crate can `impl State for MyType` and get a
-`Transaction<MyType>` that satisfies neither impl block. Sealing prevents that, and it is chapter 8's
-material, so we leave the trait open for now with the note that a real library would not.
+**Nothing yet says what `S` may be.** `Transaction<'_, u32>` is a nameable type, and it has no methods
+and no way to be constructed, so it is a curiosity rather than a hole. Writing the set down takes a
+trait, and deciding who may add to it takes sealing. Both are chapter 8.
 
 ## Capabilities and tokens
 

@@ -3,18 +3,23 @@
 //! Move the flag into the type. `Transaction` gains a state parameter, and the methods that write
 //! exist only for the state that is allowed to write.
 //!
-//! The marker types and the `State` trait are already here. Your job:
+//! The two marker types are already here. Your job:
 //!
 //! 1. `Transaction<'store, S>`, with a `PhantomData<S>` field. `PhantomData` is how you use a type
 //!    parameter you do not store a value of; it is zero-sized, so the struct does not grow.
 //! 2. `begin` returns `Transaction<'_, ReadWrite>`, `begin_read` returns `Transaction<'_, ReadOnly>`.
 //! 3. Split the methods across two impl blocks: `get` and the private `undo_everything` go in
-//!    `impl<S> Transaction<'_, S> where S: State`, and `insert`, `remove`, `commit` and `rollback` go
-//!    in `impl Transaction<'_, ReadWrite>`.
+//!    `impl<S> Transaction<'_, S>`, and `insert`, `remove`, `commit` and `rollback` go in
+//!    `impl Transaction<'_, ReadWrite>`.
 //! 4. Delete the `read_only` field, both asserts and both `# Panics` sections. That is the point: the
 //!    runtime check is gone, not moved.
 //!
 //! `Store::transaction` hands out a `&mut Transaction<'_, ReadWrite>`, so its closure keeps working.
+//!
+//! Nothing stops anyone writing `Transaction<'_, u32>` as a type. Nothing useful can be done with one
+//! either: the fields are private and `begin` and `begin_read` are the only ways to get a value.
+//! Closing the set properly needs a trait, and that is chapter 8's job, along with the reason a real
+//! library would not let you implement it.
 //!
 //! Two things must stop compiling. Writing through a read-only transaction:
 //!
@@ -226,18 +231,11 @@ impl Drop for Transaction<'_> {
     }
 }
 
-/// What a [`Transaction`] is allowed to do.
-pub trait State {}
-
 /// A transaction that may only read.
 pub struct ReadOnly;
 
-impl State for ReadOnly {}
-
 /// A transaction that may read and write.
 pub struct ReadWrite;
-
-impl State for ReadWrite {}
 
 /// The name of a bucket.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

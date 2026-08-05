@@ -1,16 +1,20 @@
 //! # Exercise
 //!
-//! Two traits in this crate look alike and want opposite things.
+//! Since chapter 6, `Transaction` and `Writer` have carried a state parameter with nothing to say
+//! what may go in it. `Transaction<'_, u32>` is a nameable type. Nobody can build one, because the
+//! fields are private, but the crate never wrote down what the parameter means.
+//!
+//! Write it down, and in the same breath decide who is allowed to add to it.
 //!
 //! `Format` is an **extension point**. Someone else's crate should be able to add a format, and every
 //! method they need is public. Leave it alone.
 //!
-//! `State` and `Section` are **implementation details**. `ReadOnly`, `ReadWrite`, `Root` and
-//! `InBucket` are the only members that will ever make sense, and the impl blocks in this crate assume
-//! it: a `Transaction<MyOwnState>` would satisfy the trait bound and have no methods at all, because
-//! `insert` is defined on `Transaction<'_, ReadWrite>` and nothing else.
+//! `State` and `Section` are the opposite: `ReadOnly`, `ReadWrite`, `Root` and `InBucket` are the only
+//! members that will ever make sense, and the impl blocks in this crate assume it. A
+//! `Transaction<MyOwnState>` would satisfy the bound and have no methods at all, because `insert` is
+//! defined on `Transaction<'_, ReadWrite>` and nothing else.
 //!
-//! Seal them:
+//! So declare them, bound on them, and seal them:
 //!
 //! ```text
 //! mod sealed {
@@ -26,6 +30,16 @@
 //!
 //! Do it for both `State` and `Section`, with one `sealed` module holding one `Sealed` trait, and
 //! implement `Sealed` for the four marker types.
+//!
+//! Then put the traits to work, which is what makes sealing them mean anything:
+//!
+//! - `Transaction<'store, S>`, `impl<S> Transaction<'_, S>` and `impl<S> Drop for Transaction<'_, S>`
+//!   all gain `where S: State`. A `Drop` impl must repeat its struct's bounds exactly, so all three
+//!   move together or none of them compile.
+//! - `Writer<S>` gains `where S: Section`.
+//!
+//! This exercise starts out **not compiling**: the doctest below is written against a `State` that
+//! does not exist yet.
 //!
 //! Afterwards this must fail, from outside the crate:
 //!
@@ -181,20 +195,14 @@ impl Store {
 ///
 /// Changes take effect immediately. Until [`Transaction::commit`] is called, every one of them can
 /// still be taken back by [`Transaction::rollback`].
-pub struct Transaction<'store, S>
-where
-    S: State,
-{
+pub struct Transaction<'store, S> {
     store: &'store mut Store,
     undo: Vec<Undo>,
     finished: bool,
     _state: PhantomData<S>,
 }
 
-impl<S> Transaction<'_, S>
-where
-    S: State,
-{
+impl<S> Transaction<'_, S> {
     /// Looks up a value as part of this transaction.
     pub fn get(&self, bucket: &Bucket, key: &Key) -> Option<&Value> {
         self.store.get(bucket, key)
@@ -244,10 +252,7 @@ impl Transaction<'_, ReadWrite> {
     }
 }
 
-impl<S> Drop for Transaction<'_, S>
-where
-    S: State,
-{
+impl<S> Drop for Transaction<'_, S> {
     fn drop(&mut self) {
         if self.finished {
             return;
@@ -261,18 +266,11 @@ where
     }
 }
 
-/// What a [`Transaction`] is allowed to do.
-pub trait State {}
-
 /// A transaction that may only read.
 pub struct ReadOnly;
 
-impl State for ReadOnly {}
-
 /// A transaction that may read and write.
 pub struct ReadWrite;
-
-impl State for ReadWrite {}
 
 /// A rendering of a [`Store`], one bucket and one entry at a time.
 ///
@@ -342,10 +340,7 @@ impl Format for Csv {
 }
 
 /// Renders a [`Store`] as text, one bucket at a time.
-pub struct Writer<S>
-where
-    S: Section,
-{
+pub struct Writer<S> {
     output: String,
     _section: PhantomData<S>,
 }
@@ -397,18 +392,11 @@ impl Writer<InBucket> {
     }
 }
 
-/// Where a [`Writer`] currently is in the document.
-pub trait Section {}
-
 /// A writer between buckets.
 pub struct Root;
 
-impl Section for Root {}
-
 /// A writer inside a bucket.
 pub struct InBucket;
-
-impl Section for InBucket {}
 
 /// Convenience methods on every iterator.
 pub trait IteratorExt: Iterator {

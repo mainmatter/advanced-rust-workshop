@@ -1,16 +1,31 @@
 # Sealed traits
 
-`minidb` now has two public traits that want opposite things.
+Since chapter 6, `Transaction` and `Writer` have carried a state parameter with nothing to say what
+may go in it. `Transaction<'_, u32>` is a nameable type. Nobody can build one, so it has been a
+curiosity rather than a hole, and we left it alone because the fix and the reason for the fix belong
+together, here.
+
+Writing the set down is one line per trait:
+
+```rust
+pub trait State {}
+pub trait Section {}
+```
+
+and putting them to work is a bound on `Transaction<'store, S>` and `Writer<S>`. That much is
+bookkeeping. The decision worth making is the next one, and it is the same decision for every public
+trait you write: **is a third-party implementation of this something I want to work?**
 
 `Format` is an **extension point**. Somebody else's crate should be able to add a format, and every
 method they need to do that is public.
 
-`State` and `Section` are **implementation details that happen to be public**. `ReadOnly`,
-`ReadWrite`, `Root` and `InBucket` are the only members that will ever make sense, and the rest of
-the crate assumes it. A `Transaction<MyOwnState>` would satisfy the bound and have no methods at all,
-because `insert` is defined on `Transaction<'_, ReadWrite>` and nowhere else.
+`State` and `Section` are not. `ReadOnly`, `ReadWrite`, `Root` and `InBucket` are the only members
+that will ever make sense, and the rest of the crate assumes it. A `Transaction<MyOwnState>` would
+satisfy the bound and have no methods at all, because `insert` is defined on
+`Transaction<'_, ReadWrite>` and nowhere else.
 
-Making a trait public and implementable is a promise. Sealing takes back half of it.
+Making a trait public and implementable is a promise. Sealing takes back half of it, and it is much
+easier to do now than after the trait has been published open.
 
 ## The pattern
 

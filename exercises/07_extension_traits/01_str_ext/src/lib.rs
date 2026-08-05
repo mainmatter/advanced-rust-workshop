@@ -157,20 +157,14 @@ impl Store {
 ///
 /// Changes take effect immediately. Until [`Transaction::commit`] is called, every one of them can
 /// still be taken back by [`Transaction::rollback`].
-pub struct Transaction<'store, S>
-where
-    S: State,
-{
+pub struct Transaction<'store, S> {
     store: &'store mut Store,
     undo: Vec<Undo>,
     finished: bool,
     _state: PhantomData<S>,
 }
 
-impl<S> Transaction<'_, S>
-where
-    S: State,
-{
+impl<S> Transaction<'_, S> {
     /// Looks up a value as part of this transaction.
     pub fn get(&self, bucket: &Bucket, key: &Key) -> Option<&Value> {
         self.store.get(bucket, key)
@@ -220,10 +214,7 @@ impl Transaction<'_, ReadWrite> {
     }
 }
 
-impl<S> Drop for Transaction<'_, S>
-where
-    S: State,
-{
+impl<S> Drop for Transaction<'_, S> {
     fn drop(&mut self) {
         if self.finished {
             return;
@@ -237,24 +228,14 @@ where
     }
 }
 
-/// What a [`Transaction`] is allowed to do.
-pub trait State {}
-
 /// A transaction that may only read.
 pub struct ReadOnly;
-
-impl State for ReadOnly {}
 
 /// A transaction that may read and write.
 pub struct ReadWrite;
 
-impl State for ReadWrite {}
-
 /// Renders a [`Store`] as text, one bucket at a time.
-pub struct Writer<S>
-where
-    S: Section,
-{
+pub struct Writer<S> {
     output: String,
     _section: PhantomData<S>,
 }
@@ -306,18 +287,11 @@ impl Writer<InBucket> {
     }
 }
 
-/// Where a [`Writer`] currently is in the document.
-pub trait Section {}
-
 /// A writer between buckets.
 pub struct Root;
 
-impl Section for Root {}
-
 /// A writer inside a bucket.
 pub struct InBucket;
-
-impl Section for InBucket {}
 
 /// The name of a bucket.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
