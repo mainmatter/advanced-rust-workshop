@@ -14,6 +14,10 @@ impl Drop for Transaction<'_> {
 }
 ```
 
+`undo_everything` is a `&mut self` method holding the loop that `rollback` used to run inline. Both
+paths need it and `drop` cannot call `rollback`, which consumes `self`, so the shared work has to live
+somewhere both can reach.
+
 That is the entire safety improvement. An early return, a `?`, a panic, an unhandled branch: all of
 them now put the store back the way they found it.
 
@@ -42,6 +46,20 @@ impl Drop for Transaction<'_> {
     fn drop(&mut self) {
         for undo in self.undo.into_iter() {   // error[E0507]: cannot move out of `self.undo`
 ```
+
+The rule is broader than `drop` itself. A type that implements `Drop` cannot have its fields moved out
+**anywhere**, because every value of it still has to be dropped afterwards, whole. So writing the impl
+above breaks `rollback`, which consumes `self` and was moving the undo log out quite legally a moment
+earlier:
+
+```rust
+pub fn rollback(self) {
+    for undo in self.undo.into_iter().rev() {   // error[E0509]: cannot move out of type
+                                                // `Transaction<'_>`, which implements `Drop`
+```
+
+Worth knowing before you add a destructor to a type that already has users: it is not a purely
+additive change.
 
 The two standard ways out are both "leave something valid behind":
 

@@ -4,20 +4,22 @@
 //! one: implement `Drop` for `Transaction`, so a transaction that is neither committed nor rolled back
 //! undoes itself.
 //!
-//! Two things will get in your way, and both are the lesson.
+//! Write the impl block yourself, and expect it to break code you have not touched. A type that
+//! implements `Drop` can no longer have its fields moved out, anywhere, because every value of it
+//! still has to be dropped afterwards. `rollback` moves the undo log out of `self` today, quite
+//! legally, and stops compiling the moment your impl exists.
 //!
-//! `Drop::drop` hands you `&mut self`, not `self`, so you cannot move the undo log out of it: the
-//! value still has to be dropped after you are done with it. `mem::take` swaps in an empty `Vec` and
-//! gives you the full one, which is the usual way out. `Option::take` is the same trick for a single
-//! value.
+//! `mem::take` swaps in an empty `Vec` and gives you the full one, which is the usual way out.
+//! `Option::take` is the same trick for a single value. Once `rollback` compiles again, `drop` wants
+//! the same work and cannot call `rollback`, which consumes `self`, so the shared part belongs in a
+//! method taking `&mut self`.
 //!
-//! `commit` consumes `self`, so a committed transaction is dropped the instant `commit` returns and
-//! your new `Drop` impl runs immediately afterwards. Make sure it does not undo the work that was just
-//! committed: `Drop` has to be able to tell that a decision was already made.
+//! `commit` consumes `self` too, so a committed transaction is dropped the instant `commit` returns
+//! and your new `Drop` impl runs immediately afterwards. Make sure it does not undo the work that was
+//! just committed: `Drop` has to be able to tell that a decision was already made.
 
 use std::collections::HashMap;
 use std::fmt::{self, Debug, Formatter};
-use std::mem;
 
 const MAX_NAME_LENGTH: usize = 64;
 
@@ -100,23 +102,13 @@ impl Transaction<'_> {
     pub fn commit(self) {}
 
     /// Takes back every change made through this transaction.
-    pub fn rollback(mut self) {
-        self.undo_everything();
-    }
-
-    fn undo_everything(&mut self) {
-        for undo in mem::take(&mut self.undo).into_iter().rev() {
+    pub fn rollback(self) {
+        for undo in self.undo.into_iter().rev() {
             match undo.previous {
                 Some(value) => self.store.insert(&undo.bucket, &undo.key, value),
                 None => self.store.remove(&undo.bucket, &undo.key),
             };
         }
-    }
-}
-
-impl Drop for Transaction<'_> {
-    fn drop(&mut self) {
-        todo!()
     }
 }
 

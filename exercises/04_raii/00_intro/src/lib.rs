@@ -9,7 +9,6 @@
 
 use std::collections::HashMap;
 use std::fmt::{self, Debug, Formatter};
-use std::mem;
 
 const MAX_NAME_LENGTH: usize = 64;
 
@@ -92,12 +91,8 @@ impl Transaction<'_> {
     pub fn commit(self) {}
 
     /// Takes back every change made through this transaction.
-    pub fn rollback(mut self) {
-        self.undo_everything();
-    }
-
-    fn undo_everything(&mut self) {
-        for undo in mem::take(&mut self.undo).into_iter().rev() {
+    pub fn rollback(self) {
+        for undo in self.undo.into_iter().rev() {
             match undo.previous {
                 Some(value) => self.store.insert(&undo.bucket, &undo.key, value),
                 None => self.store.remove(&undo.bucket, &undo.key),
