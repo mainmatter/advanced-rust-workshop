@@ -14,16 +14,15 @@ impl Store {
     {
         let mut tx = self.begin();
 
-        match changes(&mut tx) {
-            Ok(value) => {
-                tx.commit();
-                Ok(value)
-            }
-            Err(error) => {
-                tx.rollback();
-                Err(error)
-            }
+        let result = changes(&mut tx);
+
+        if result.is_ok() {
+            tx.commit();
+        } else {
+            tx.rollback();
         }
+
+        result
     }
 }
 ```

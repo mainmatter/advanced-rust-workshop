@@ -18,6 +18,9 @@
 //! Resist `impl Deref<Target = String>`. It would make every `String` method show up on `Key`,
 //! including the ones that break it.
 //!
+//! This exercise starts out **not compiling**: the tests call the two accessors you are about to
+//! write.
+//!
 //! These two must stop compiling:
 //!
 //! ```compile_fail,E0603
@@ -77,16 +80,6 @@ impl Bucket {
     pub fn parse(raw: &str) -> Result<Self, NameError> {
         parse_name(raw).map(Self)
     }
-
-    /// Borrows the bucket name.
-    pub fn as_str(&self) -> &str {
-        todo!()
-    }
-
-    /// Consumes the bucket name, returning the wrapped `String`.
-    pub fn into_inner(self) -> String {
-        todo!()
-    }
 }
 
 /// The name of a value within a bucket.
@@ -96,16 +89,6 @@ impl Key {
     /// Parses a key, rejecting anything `minidb` cannot store.
     pub fn parse(raw: &str) -> Result<Self, NameError> {
         parse_name(raw).map(Self)
-    }
-
-    /// Borrows the key.
-    pub fn as_str(&self) -> &str {
-        todo!()
-    }
-
-    /// Consumes the key, returning the wrapped `String`.
-    pub fn into_inner(self) -> String {
-        todo!()
     }
 }
 

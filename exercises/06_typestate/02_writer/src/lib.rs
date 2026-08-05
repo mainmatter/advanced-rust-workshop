@@ -5,8 +5,8 @@
 //! moves with it.
 //!
 //! `Store::export` is already written, and it does not compile, because it sorts `Bucket`s and
-//! `Key`s that cannot yet be compared. `Writer` is here too, as a skeleton of `todo!()`s. It renders
-//! the store as text:
+//! `Key`s that cannot yet be compared. The `Writer` struct and its two sections are here too, but
+//! none of its methods: those are yours. It renders the store as text:
 //!
 //! ```text
 //! [orders]
@@ -273,35 +273,6 @@ where
 {
     output: String,
     _section: PhantomData<S>,
-}
-
-impl Writer<Root> {
-    /// Starts an empty document.
-    pub fn new() -> Self {
-        todo!()
-    }
-
-    /// Opens a bucket.
-    pub fn bucket(self, bucket: &Bucket) -> Writer<InBucket> {
-        todo!()
-    }
-
-    /// Finishes the document.
-    pub fn finish(self) -> String {
-        todo!()
-    }
-}
-
-impl Writer<InBucket> {
-    /// Writes one entry into the open bucket.
-    pub fn entry(self, key: &Key, value: &Value) -> Self {
-        todo!()
-    }
-
-    /// Closes the open bucket.
-    pub fn end(self) -> Writer<Root> {
-        todo!()
-    }
 }
 
 /// Where a [`Writer`] currently is in the document.
