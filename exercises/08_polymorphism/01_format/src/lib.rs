@@ -17,7 +17,7 @@
 //! Then give `Store` both ways to use it:
 //!
 //! ```text
-//! pub fn export_with<F>(&self, format: F) -> String where F: Format
+//! pub fn export_with<F>(&self, mut format: F) -> String where F: Format
 //! pub fn export_into(&self, format: &mut dyn Format) -> String
 //! ```
 //!

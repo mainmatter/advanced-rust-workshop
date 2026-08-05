@@ -20,10 +20,10 @@
 //!
 //! ```text
 //! Writer<Root>::new() -> Writer<Root>
-//! Writer<Root>::bucket(self, &Bucket) -> Writer<InBucket>     writes "[name]\n"
+//! Writer<Root>::bucket(mut self, &Bucket) -> Writer<InBucket>     writes "[name]\n"
 //! Writer<Root>::finish(self) -> String
 //!
-//! Writer<InBucket>::entry(self, &Key, &Value) -> Self         writes "key = value\n"
+//! Writer<InBucket>::entry(mut self, &Key, &Value) -> Self         writes "key = value\n"
 //! Writer<InBucket>::end(self) -> Writer<Root>
 //! ```
 //!
