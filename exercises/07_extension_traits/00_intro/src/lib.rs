@@ -1,14 +1,17 @@
 //! # Exercise
 //!
-//! Nothing to write here. Read the doctest, run `wr`, and move on.
+//! Nothing to write here. Read the test and the doctest, run `wr`, and move on.
 //!
 //! Every ergonomic wish in `minidb` so far has been satisfiable by adding a method to a type we own.
-//! That runs out the moment the type belongs to somebody else.
+//! This one cannot be:
 //!
-//! Rust's **orphan rule** says you may implement a trait for a type only if you own the trait or you
-//! own the type. Both foreign is forbidden, and the reason is coherence: if two crates could both
-//! `impl Display for Vec<u8>`, a program depending on both would have two answers and no way to
-//! choose.
+//! ```text
+//! let id = Key::parse("42")?;   // today, and in the test below
+//! let id = "42".to_key()?;      // what we want
+//! ```
+//!
+//! `str` belongs to the standard library, and the doctest shows what happens when you try to add
+//! anything to a type that is not yours.
 //!
 //! ```compile_fail,E0117
 //! use std::fmt::{self, Display, Formatter};
@@ -19,12 +22,6 @@
 //!     }
 //! }
 //! ```
-//!
-//! So you cannot add a method to `str`, or to `Option`, or to anything else you did not define. What
-//! you *can* do is define your own trait, which you own, and implement it for their type. That is an
-//! **extension trait**, and it is the whole content of this chapter.
-//!
-//! The test below shows the ergonomics we are about to fix.
 
 use std::collections::HashMap;
 use std::fmt::{self, Debug, Formatter};

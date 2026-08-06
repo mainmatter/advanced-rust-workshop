@@ -29,7 +29,7 @@
   - [States that move](06_typestate/02_writer.md)
 
 - [Extension traits](07_extension_traits/00_intro.md)
-  - [Writing one, and not writing one](07_extension_traits/01_str_ext.md)
+  - [Which type to implement, and when not to](07_extension_traits/01_str_ext.md)
   - [Extending a trait](07_extension_traits/02_iter_ext.md)
 
 - [Polymorphism](08_polymorphism/00_intro.md)

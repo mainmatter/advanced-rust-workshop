@@ -1,4 +1,4 @@
-# Writing one, and not writing one
+# Which type to implement, and when not to
 
 ## Implement it for the unsized type
 
