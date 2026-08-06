@@ -10,7 +10,7 @@
 //! }
 //!
 //! Store::entry_ref(&self, bucket: &Bucket, key: &Key) -> Option<EntryRef<'_>>
-//! Store::read(&self, entry: &EntryRef<'_>) -> Option<&Value>
+//! Store::read(&self, entry_ref: &EntryRef<'_>) -> Option<&Value>
 //! ```
 //!
 //! `entry_ref` returns `None` if there is nothing there, so holding an `EntryRef` means the entry
@@ -32,11 +32,11 @@
 //! let id = Key::parse("42").unwrap();
 //! store.insert(users.clone(), id.clone(), Value::new("Alice"));
 //!
-//! let entry = store.entry_ref(&users, &id).unwrap();
+//! let entry_ref = store.entry_ref(&users, &id).unwrap();
 //!
 //! store.insert(users.clone(), id.clone(), Value::new("Bob"));
 //!
-//! store.read(&entry);
+//! store.read(&entry_ref);
 //! ```
 //!
 //! and a handle cannot outlive what it points into:
@@ -578,9 +578,9 @@ mod tests {
         let id = Key::parse("42").unwrap();
         store.insert(users.clone(), id.clone(), Value::new("Alice"));
 
-        let entry = store.entry_ref(&users, &id).unwrap();
+        let entry_ref = store.entry_ref(&users, &id).unwrap();
 
-        assert_eq!(store.read(&entry).map(Value::as_str), Some("Alice"));
+        assert_eq!(store.read(&entry_ref).map(Value::as_str), Some("Alice"));
     }
 
     #[test]

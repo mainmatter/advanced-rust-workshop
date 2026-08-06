@@ -197,8 +197,8 @@ impl Store {
     }
 
     /// Reads the value a handle points at.
-    pub fn read(&self, entry: &EntryRef<'_>) -> Option<&Value> {
-        self.get(&entry.bucket, &entry.key)
+    pub fn read(&self, entry_ref: &EntryRef<'_>) -> Option<&Value> {
+        self.get(&entry_ref.bucket, &entry_ref.key)
     }
 }
 
