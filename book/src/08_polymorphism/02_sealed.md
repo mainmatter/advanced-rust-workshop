@@ -73,8 +73,8 @@ The question to ask: **is a third-party implementation of this trait something I
 yes, leave it open and accept that its signature is frozen. If the answer is "that would be
 meaningless" or "that would break my invariants", seal it and say so in the docs.
 
-`std` seals plenty: `Error`'s internals, `SliceIndex`, the `Pattern` trait, `OsStrExt`. All of them
-are closed sets that exist to be _used_ rather than extended.
+`std` seals plenty: `SliceIndex`, `IsTerminal`, and every `os::unix` extension trait, `OsStrExt` and
+`CommandExt` among them. All of them are closed sets that exist to be _used_ rather than extended.
 
 ## The nearby alternative
 

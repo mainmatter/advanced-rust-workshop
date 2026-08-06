@@ -35,6 +35,11 @@
 //! `dyn` is a constraint on the trait, and you pay for it in the signature whether or not anyone ever
 //! writes `dyn`.
 //!
+//! `where Self: Sized` is the escape hatch elsewhere, and it is no help here. It keeps the trait
+//! dyn-compatible by leaving the method out of the vtable, so `finish` would become uncallable through
+//! the `&mut dyn Format` that `export_into` holds, which is the only way `export_into` can finish at
+//! all.
+//!
 //! Here is what that constraint buys, and it is not nothing:
 //!
 //! ```
