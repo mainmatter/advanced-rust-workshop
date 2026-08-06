@@ -49,6 +49,10 @@
 //! scope(|store| store.get(&users, &stolen));
 //! ```
 //!
+//! The rejection lands on the `stolen` line, not on the use below it: `R` is chosen by the caller,
+//! before `'brand` exists, so no type carrying a brand can leave the closure. Inside the closure a
+//! `ScopedKey` is an ordinary value, and only the boundary is closed.
+//!
 //! This is the trick behind `GhostCell` and the `generativity` crate, and it is how a library can
 //! hand out indices that are checked once and then used without bounds checks, safely.
 //!
