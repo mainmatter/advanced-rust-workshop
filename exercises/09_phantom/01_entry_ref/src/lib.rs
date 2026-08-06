@@ -56,6 +56,12 @@
 //! let _ = escaped;
 //! ```
 //!
+//! Notice what `read` still cannot promise. Holding the handle means the entry was there and that
+//! nothing has changed the store since, so the lookup could in principle be infallible. It stays
+//! an `Option` because nothing ties the handle to *this* store: two stores can be borrowed for the
+//! same region, and a lifetime cannot tell two values apart. Giving a store an identity that its
+//! handles can name is the next exercise.
+//!
 //! This exercise starts out **not compiling**: the tests call `entry_ref` and `read`, which do not
 //! exist yet.
 

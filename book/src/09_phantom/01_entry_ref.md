@@ -25,6 +25,15 @@ applies for free:
 
 None of that is code you wrote. It is one field of a type that occupies no space.
 
+The second bullet is doing more work than it looks. `EntryRef` cannot dangle, so what the borrow
+prevents is subtler: an insert at the same place would leave the handle valid and pointing at a
+different value, and nothing would signal the swap. That is the ABA problem, the same reason you
+cannot insert into a `HashMap` while iterating it.
+
+What the borrow does not buy is identity. `Store::read` still returns an `Option` because nothing
+ties a handle to _this_ store: two stores can be borrowed for the same region, and a lifetime cannot
+tell two values apart. Closing that gap is the next section.
+
 ## Where else this shows up
 
 Once you know the shape you find it in every wrapper over a foreign resource: an index into an arena,
