@@ -1,27 +1,27 @@
 # Sealed traits
 
-Since chapter 6, `Transaction` and `Writer` have carried a state parameter with nothing to say what
-may go in it. `Transaction<'_, u32>` is a nameable type. Nobody can build one, so it has been a
+Since chapter 6, `Transaction` and `Writer` have each carried a type parameter with nothing to say
+what may go in it. `Transaction<'_, u32>` is a nameable type. Nobody can build one, so it has been a
 curiosity rather than a hole, and we left it alone because the fix and the reason for the fix belong
 together, here.
 
 Writing the set down is one line per trait:
 
 ```rust
-pub trait State {}
-pub trait Section {}
+pub trait AccessMode {}
+pub trait Position {}
 ```
 
-and putting them to work is a bound on `Transaction<'store, S>` and `Writer<S>`. That much is
+and putting them to work is a bound on `Transaction<'store, A>` and `Writer<P>`. That much is
 bookkeeping. The decision worth making is the next one, and it is the same decision for every public
 trait you write: **is a third-party implementation of this something I want to work?**
 
 `Format` is an **extension point**. Somebody else's crate should be able to add a format, and every
 method they need to do that is public.
 
-`State` and `Section` are not. `ReadOnly`, `ReadWrite`, `Root` and `InBucket` are the only members
-that will ever make sense. A `Transaction<MyOwnState>` would satisfy the bound and have no methods at
-all, because `insert` is defined on `Transaction<'_, ReadWrite>` and nowhere else.
+`AccessMode` and `Position` are not. `ReadOnly`, `ReadWrite`, `Root` and `InBucket` are the only
+members that will ever make sense. A `Transaction<MyOwnMode>` would satisfy the bound and have no
+methods at all, because `insert` is defined on `Transaction<'_, ReadWrite>` and nowhere else.
 
 Making a trait public and implementable is a promise. Sealing takes back half of it, and it is much
 easier to do now than after the trait has been published open.
@@ -33,15 +33,16 @@ mod sealed {
     pub trait Sealed {}
 }
 
-pub trait State: sealed::Sealed {}
+pub trait AccessMode: sealed::Sealed {}
 
 impl sealed::Sealed for ReadOnly {}
-impl State for ReadOnly {}
+impl AccessMode for ReadOnly {}
 ```
 
 The `sealed` module is private, so `sealed::Sealed` cannot be named outside this crate. A downstream
-crate can still see `State`, still write `T: State` bounds, still call every method: it just cannot
-write `impl State for MyType`, because it cannot implement the supertrait it would need.
+crate can still see `AccessMode`, still write `T: AccessMode` bounds, still call every method: it
+just cannot write `impl AccessMode for MyType`, because it cannot implement the supertrait it would
+need.
 
 The error a downstream user gets is honest, if not beautiful:
 
@@ -64,9 +65,9 @@ blanket impls, and rely on invariants the trait itself does not express.
 
 ## What it does not buy, yet
 
-None of that is cashed in here. `State` and `Section` are empty, nothing dispatches on them, and
-`Transaction`'s private fields already stop an outside implementor from building a
-`Transaction<MyOwnState>`. Sealing changes no code that exists, and the `compile_fail` test in the
+None of that is cashed in here. `AccessMode` and `Position` are empty, nothing dispatches on them,
+and `Transaction`'s private fields already stop an outside implementor from building a
+`Transaction<MyOwnMode>`. Sealing changes no code that exists, and the `compile_fail` test in the
 exercise proves the mechanism works rather than that it matters.
 
 That is the normal case, and it is still the right call, because the decision is irreversible in one
@@ -100,5 +101,5 @@ extended by anyone, including you in a minor release, and it cannot carry per-va
 without a `match` in every method.
 
 The rough division: **enum when the set is small and you dispatch on it; sealed trait when each member
-carries its own behaviour or is used as a type parameter.** `State` and `Section` are type
-parameters, so they have to be types, and sealing is the only way to close the set.
+carries its own behaviour or is used as a type parameter.** `AccessMode` and `Position` are type
+parameters, so they must be types, and sealing is the only way to close the set.

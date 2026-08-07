@@ -1,7 +1,7 @@
 //! # Exercise
 //!
-//! Since chapter 6, `Transaction` and `Writer` have carried a state parameter with nothing to say
-//! what may go in it. `Transaction<'_, u32>` is a nameable type. Nobody can build one, because the
+//! Since chapter 6, `Transaction` and `Writer` have each carried a type parameter with nothing to
+//! say what may go in it. `Transaction<'_, u32>` is a nameable type. Nobody can build one, because the
 //! fields are private, but the crate never wrote down what the parameter means.
 //!
 //! Write it down, and in the same breath decide who is allowed to add to it.
@@ -9,12 +9,15 @@
 //! `Format` is an **extension point**. Someone else's crate should be able to add a format, and every
 //! method they need is public. Leave it alone.
 //!
-//! `State` and `Section` are the opposite: `ReadOnly`, `ReadWrite`, `Root` and `InBucket` are the only
-//! members that will ever make sense. A `Transaction<MyOwnState>` would satisfy the bound and have no
-//! methods at all, because `insert` is defined on `Transaction<'_, ReadWrite>` and nothing else.
+//! The two parameters are the opposite. Name them `AccessMode` on `Transaction` and `Position` on
+//! `Writer`: `ReadOnly`, `ReadWrite`, `Root` and `InBucket` are the only members that will ever
+//! make sense. A `Transaction<MyOwnMode>` would satisfy the bound and have no methods at all,
+//! because
+//! `insert` is defined on `Transaction<'_, ReadWrite>` and nothing else.
 //!
 //! Be clear about what the sealing does for `minidb` today: nothing. The traits are empty, no method
-//! dispatches on them, and the private fields already stop anyone building a `Transaction<MyOwnState>`.
+//! dispatches on them, and the private fields already stop anyone building a
+//! `Transaction<MyOwnMode>`.
 //! You are not closing a hole, you are buying an option, and it is only on sale before the crate is
 //! published. Sealing an open trait breaks every downstream implementor; unsealing later breaks
 //! nobody.
@@ -26,44 +29,44 @@
 //!     pub trait Sealed {}
 //! }
 //!
-//! pub trait State: sealed::Sealed {}
+//! pub trait AccessMode: sealed::Sealed {}
 //! ```
 //!
 //! The module is private, so `sealed::Sealed` is unnameable outside this crate. A downstream crate can
-//! still *see* `State`, still write `T: State` bounds, still call everything: it just cannot implement
-//! it, because it cannot implement the supertrait.
+//! still *see* `AccessMode`, still write `T: AccessMode` bounds, still call everything: it just
+//! cannot implement it, because it cannot implement the supertrait.
 //!
-//! Do it for both `State` and `Section`, with one `sealed` module holding one `Sealed` trait, and
-//! implement `Sealed` for the four marker types.
+//! Do it for both `AccessMode` and `Position`, with one `sealed` module holding one `Sealed` trait,
+//! and implement `Sealed` for the four marker types.
 //!
 //! Then put the traits to work, which is what makes sealing them mean anything:
 //!
-//! - `Transaction<'store, S>`, `impl<S> Transaction<'_, S>` and `impl<S> Drop for Transaction<'_, S>`
-//!   all gain `where S: State`. A `Drop` impl must repeat its struct's bounds exactly, so all three
-//!   move together or none of them compile.
-//! - `Writer<S>` gains `where S: Section`.
+//! - `Transaction<'store, A>`, `impl<A> Transaction<'_, A>` and `impl<A> Drop for Transaction<'_, A>`
+//!   all gain `where A: AccessMode`. A `Drop` impl must repeat its struct's bounds exactly, so all
+//!   three move together or none of them compile.
+//! - `Writer<P>` gains `where P: Position`.
 //!
-//! This exercise starts out **not compiling**: the doctest below is written against a `State` that
-//! does not exist yet.
+//! This exercise starts out **not compiling**: the doctest below is written against an `AccessMode`
+//! that does not exist yet.
 //!
 //! Afterwards this must fail, from outside the crate:
 //!
 //! ```compile_fail,E0277
-//! use polymorphism_sealed::State;
+//! use polymorphism_sealed::AccessMode;
 //!
-//! struct MyOwnState;
+//! struct MyOwnMode;
 //!
-//! impl State for MyOwnState {}
+//! impl AccessMode for MyOwnMode {}
 //! ```
 //!
 //! and this must still work, because sealing restricts implementing, not using:
 //!
 //! ```
-//! use polymorphism_sealed::{ReadWrite, State, Transaction};
+//! use polymorphism_sealed::{AccessMode, ReadWrite, Transaction};
 //!
-//! fn only_writers<S>(_: &Transaction<'_, S>)
+//! fn only_writers<A>(_: &Transaction<'_, A>)
 //! where
-//!     S: State,
+//!     A: AccessMode,
 //! {
 //! }
 //! ```
@@ -114,7 +117,7 @@ impl Store {
             store: self,
             undo: Vec::new(),
             finished: false,
-            _state: PhantomData,
+            _access: PhantomData,
         }
     }
 
@@ -124,7 +127,7 @@ impl Store {
             store: self,
             undo: Vec::new(),
             finished: true,
-            _state: PhantomData,
+            _access: PhantomData,
         }
     }
 
@@ -200,14 +203,14 @@ impl Store {
 ///
 /// Changes take effect immediately. Until [`Transaction::commit`] is called, every one of them can
 /// still be taken back by [`Transaction::rollback`].
-pub struct Transaction<'store, S> {
+pub struct Transaction<'store, A> {
     store: &'store mut Store,
     undo: Vec<Undo>,
     finished: bool,
-    _state: PhantomData<S>,
+    _access: PhantomData<A>,
 }
 
-impl<S> Transaction<'_, S> {
+impl<A> Transaction<'_, A> {
     /// Looks up a value as part of this transaction.
     pub fn get(&self, bucket: &Bucket, key: &Key) -> Option<&Value> {
         self.store.get(bucket, key)
@@ -257,7 +260,7 @@ impl Transaction<'_, ReadWrite> {
     }
 }
 
-impl<S> Drop for Transaction<'_, S> {
+impl<A> Drop for Transaction<'_, A> {
     fn drop(&mut self) {
         if self.finished {
             return;
@@ -345,9 +348,9 @@ impl Format for Csv {
 }
 
 /// Renders a [`Store`] as text, one bucket at a time.
-pub struct Writer<S> {
+pub struct Writer<P> {
     output: String,
-    _section: PhantomData<S>,
+    _position: PhantomData<P>,
 }
 
 impl Writer<Root> {
@@ -355,7 +358,7 @@ impl Writer<Root> {
     pub fn new() -> Self {
         Self {
             output: String::new(),
-            _section: PhantomData,
+            _position: PhantomData,
         }
     }
 
@@ -367,7 +370,7 @@ impl Writer<Root> {
 
         Writer {
             output: self.output,
-            _section: PhantomData,
+            _position: PhantomData,
         }
     }
 
@@ -392,7 +395,7 @@ impl Writer<InBucket> {
     pub fn end(self) -> Writer<Root> {
         Writer {
             output: self.output,
-            _section: PhantomData,
+            _position: PhantomData,
         }
     }
 }

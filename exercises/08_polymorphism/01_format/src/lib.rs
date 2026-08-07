@@ -108,7 +108,7 @@ impl Store {
             store: self,
             undo: Vec::new(),
             finished: false,
-            _state: PhantomData,
+            _access: PhantomData,
         }
     }
 
@@ -118,7 +118,7 @@ impl Store {
             store: self,
             undo: Vec::new(),
             finished: true,
-            _state: PhantomData,
+            _access: PhantomData,
         }
     }
 
@@ -181,14 +181,14 @@ impl Store {
 ///
 /// Changes take effect immediately. Until [`Transaction::commit`] is called, every one of them can
 /// still be taken back by [`Transaction::rollback`].
-pub struct Transaction<'store, S> {
+pub struct Transaction<'store, A> {
     store: &'store mut Store,
     undo: Vec<Undo>,
     finished: bool,
-    _state: PhantomData<S>,
+    _access: PhantomData<A>,
 }
 
-impl<S> Transaction<'_, S> {
+impl<A> Transaction<'_, A> {
     /// Looks up a value as part of this transaction.
     pub fn get(&self, bucket: &Bucket, key: &Key) -> Option<&Value> {
         self.store.get(bucket, key)
@@ -238,7 +238,7 @@ impl Transaction<'_, ReadWrite> {
     }
 }
 
-impl<S> Drop for Transaction<'_, S> {
+impl<A> Drop for Transaction<'_, A> {
     fn drop(&mut self) {
         if self.finished {
             return;
@@ -259,9 +259,9 @@ pub struct ReadOnly;
 pub struct ReadWrite;
 
 /// Renders a [`Store`] as text, one bucket at a time.
-pub struct Writer<S> {
+pub struct Writer<P> {
     output: String,
-    _section: PhantomData<S>,
+    _position: PhantomData<P>,
 }
 
 impl Writer<Root> {
@@ -269,7 +269,7 @@ impl Writer<Root> {
     pub fn new() -> Self {
         Self {
             output: String::new(),
-            _section: PhantomData,
+            _position: PhantomData,
         }
     }
 
@@ -281,7 +281,7 @@ impl Writer<Root> {
 
         Writer {
             output: self.output,
-            _section: PhantomData,
+            _position: PhantomData,
         }
     }
 
@@ -306,7 +306,7 @@ impl Writer<InBucket> {
     pub fn end(self) -> Writer<Root> {
         Writer {
             output: self.output,
-            _section: PhantomData,
+            _position: PhantomData,
         }
     }
 }

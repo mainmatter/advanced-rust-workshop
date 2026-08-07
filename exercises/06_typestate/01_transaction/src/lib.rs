@@ -5,11 +5,11 @@
 //!
 //! The two marker types are already here. Your job:
 //!
-//! 1. `Transaction<'store, S>`, with a `PhantomData<S>` field. `PhantomData` is how you use a type
+//! 1. `Transaction<'store, A>`, with a `PhantomData<A>` field. `PhantomData` is how you use a type
 //!    parameter you do not store a value of; it is zero-sized, so the struct does not grow.
 //! 2. `begin` returns `Transaction<'_, ReadWrite>`, `begin_read` returns `Transaction<'_, ReadOnly>`.
 //! 3. Split the methods across two impl blocks: `get` and the private `undo_everything` go in
-//!    `impl<S> Transaction<'_, S>`, and `insert`, `remove`, `commit` and `rollback` go in
+//!    `impl<A> Transaction<'_, A>`, and `insert`, `remove`, `commit` and `rollback` go in
 //!    `impl Transaction<'_, ReadWrite>`.
 //! 4. Delete the `read_only` field, both asserts and both `# Panics` sections. That is the point: the
 //!    runtime check is gone, not moved.

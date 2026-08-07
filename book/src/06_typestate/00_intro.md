@@ -31,14 +31,14 @@ is worth noticing how natural it felt to write.
 illegal in that state do not exist.
 
 ```rust
-pub struct Transaction<'store, S> { /* ... */ }
+pub struct Transaction<'store, A> { /* ... */ }
 
 pub struct ReadOnly;
 pub struct ReadWrite;
 
-impl<S> Transaction<'_, S> { pub fn get(&self, ..) -> Option<&Value>; }   // both states
+impl<A> Transaction<'_, A> { pub fn get(&self, ..) -> Option<&Value>; }   // both modes
 
-impl Transaction<'_, ReadWrite> { pub fn insert(&mut self, ..); }         // one state
+impl Transaction<'_, ReadWrite> { pub fn insert(&mut self, ..); }         // one mode
 ```
 
 `Transaction<'_, ReadOnly>` has no `insert`. Not a private one, not one that panics: there is no

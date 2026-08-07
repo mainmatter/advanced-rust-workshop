@@ -12,15 +12,15 @@ pub struct ReadWrite;
 **`PhantomData`** to use a type parameter you store no value of:
 
 ```rust
-pub struct Transaction<'store, S> {
+pub struct Transaction<'store, A> {
     store: &'store mut Store,
     undo: Vec<Undo>,
     finished: bool,
-    _state: PhantomData<S>,
+    _access: PhantomData<A>,
 }
 ```
 
-Rust requires every type parameter to appear in the body, and `PhantomData<S>` is how you satisfy
+Rust requires every type parameter to appear in the body, and `PhantomData<A>` is how you satisfy
 that without storing anything. It is zero-sized: `size_of::<Transaction<ReadWrite>>()` and
 `size_of::<Transaction<ReadOnly>>()` are the same, and both are the size of the fields you actually
 have.
@@ -28,12 +28,12 @@ have.
 Then split the methods:
 
 ```rust
-impl<S> Transaction<'_, S> {
-    pub fn get(&self, ..) -> Option<&Value> { .. }      // every state
+impl<A> Transaction<'_, A> {
+    pub fn get(&self, ..) -> Option<&Value> { .. }      // every mode
 }
 
 impl Transaction<'_, ReadWrite> {
-    pub fn insert(&mut self, ..) { .. }                 // one state
+    pub fn insert(&mut self, ..) { .. }                 // one mode
     pub fn commit(self) { .. }
 }
 ```
@@ -44,17 +44,17 @@ impl Transaction<'_, ReadWrite> {
 cannot add one the struct does not have. Our struct has none, so neither may the destructor:
 
 ```rust
-impl<S> Drop for Transaction<'_, S> { .. }      // add `where S: ..` here and you get E0367
+impl<A> Drop for Transaction<'_, A> { .. }      // add `where A: ..` here and you get E0367
 ```
 
 Chapter 8 adds a bound to the struct, and all three sites, struct, shared impl and `Drop`, have to
 gain it together.
 
-This is also why you cannot write a `Drop` impl for only one state. If different states need different
+This is also why you cannot write a `Drop` impl for only one mode. If the two modes need different
 destructor behaviour, the difference has to live in a field, which is exactly what `finished` does
 here: a read-only transaction is born finished, so the drop bomb never arms for it.
 
-**Nothing yet says what `S` may be.** `Transaction<'_, u32>` is a nameable type, and it has no methods
+**Nothing yet says what `A` may be.** `Transaction<'_, u32>` is a nameable type, and it has no methods
 and no way to be constructed, so it is a curiosity rather than a hole. Writing the set down takes a
 trait, and deciding who may add to it takes sealing. Both are chapter 8.
 

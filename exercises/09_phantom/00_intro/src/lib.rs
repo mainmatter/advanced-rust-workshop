@@ -88,7 +88,7 @@ impl Store {
             store: self,
             undo: Vec::new(),
             finished: false,
-            _state: PhantomData,
+            _access: PhantomData,
         }
     }
 
@@ -98,7 +98,7 @@ impl Store {
             store: self,
             undo: Vec::new(),
             finished: true,
-            _state: PhantomData,
+            _access: PhantomData,
         }
     }
 
@@ -174,19 +174,19 @@ impl Store {
 ///
 /// Changes take effect immediately. Until [`Transaction::commit`] is called, every one of them can
 /// still be taken back by [`Transaction::rollback`].
-pub struct Transaction<'store, S>
+pub struct Transaction<'store, A>
 where
-    S: State,
+    A: AccessMode,
 {
     store: &'store mut Store,
     undo: Vec<Undo>,
     finished: bool,
-    _state: PhantomData<S>,
+    _access: PhantomData<A>,
 }
 
-impl<S> Transaction<'_, S>
+impl<A> Transaction<'_, A>
 where
-    S: State,
+    A: AccessMode,
 {
     /// Looks up a value as part of this transaction.
     pub fn get(&self, bucket: &Bucket, key: &Key) -> Option<&Value> {
@@ -237,9 +237,9 @@ impl Transaction<'_, ReadWrite> {
     }
 }
 
-impl<S> Drop for Transaction<'_, S>
+impl<A> Drop for Transaction<'_, A>
 where
-    S: State,
+    A: AccessMode,
 {
     fn drop(&mut self) {
         if self.finished {
@@ -256,22 +256,22 @@ where
 
 /// What a [`Transaction`] is allowed to do.
 ///
-/// This trait is sealed: `minidb` defines every state there is.
-pub trait State: sealed::Sealed {}
+/// This trait is sealed: `minidb` defines every access mode there is.
+pub trait AccessMode: sealed::Sealed {}
 
 /// A transaction that may only read.
 pub struct ReadOnly;
 
 impl sealed::Sealed for ReadOnly {}
 
-impl State for ReadOnly {}
+impl AccessMode for ReadOnly {}
 
 /// A transaction that may read and write.
 pub struct ReadWrite;
 
 impl sealed::Sealed for ReadWrite {}
 
-impl State for ReadWrite {}
+impl AccessMode for ReadWrite {}
 
 /// A rendering of a [`Store`], one bucket and one entry at a time.
 ///
@@ -341,12 +341,12 @@ impl Format for Csv {
 }
 
 /// Renders a [`Store`] as text, one bucket at a time.
-pub struct Writer<S>
+pub struct Writer<P>
 where
-    S: Section,
+    P: Position,
 {
     output: String,
-    _section: PhantomData<S>,
+    _position: PhantomData<P>,
 }
 
 impl Writer<Root> {
@@ -354,7 +354,7 @@ impl Writer<Root> {
     pub fn new() -> Self {
         Self {
             output: String::new(),
-            _section: PhantomData,
+            _position: PhantomData,
         }
     }
 
@@ -366,7 +366,7 @@ impl Writer<Root> {
 
         Writer {
             output: self.output,
-            _section: PhantomData,
+            _position: PhantomData,
         }
     }
 
@@ -391,29 +391,29 @@ impl Writer<InBucket> {
     pub fn end(self) -> Writer<Root> {
         Writer {
             output: self.output,
-            _section: PhantomData,
+            _position: PhantomData,
         }
     }
 }
 
 /// Where a [`Writer`] currently is in the document.
 ///
-/// This trait is sealed: `minidb` defines every section there is.
-pub trait Section: sealed::Sealed {}
+/// This trait is sealed: `minidb` defines every position there is.
+pub trait Position: sealed::Sealed {}
 
 /// A writer between buckets.
 pub struct Root;
 
 impl sealed::Sealed for Root {}
 
-impl Section for Root {}
+impl Position for Root {}
 
 /// A writer inside a bucket.
 pub struct InBucket;
 
 impl sealed::Sealed for InBucket {}
 
-impl Section for InBucket {}
+impl Position for InBucket {}
 
 /// Convenience methods on every iterator.
 pub trait IteratorExt: Iterator {
@@ -545,7 +545,7 @@ mod tests {
     use std::mem::size_of;
 
     #[test]
-    fn the_state_parameter_is_free() {
+    fn the_access_mode_parameter_is_free() {
         assert_eq!(
             size_of::<Transaction<'_, ReadOnly>>(),
             size_of::<Transaction<'_, ReadWrite>>()
