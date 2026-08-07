@@ -403,7 +403,7 @@ fn is_valid_char(c: char) -> bool {
 }
 #[cfg(test)]
 mod tests {
-    use crate::{NameError, Store, StrExt, Value};
+    use crate::{Key, NameError, Store, StrExt, Value};
 
     #[test]
     fn the_extension_trait_reads_well() {
@@ -451,7 +451,7 @@ mod tests {
     #[test]
     fn from_str_reports_the_same_errors() {
         assert_eq!(
-            "user 42".parse::<crate::Key>().err(),
+            "user 42".parse::<Key>().err(),
             Some(NameError::InvalidCharacter {
                 character: ' ',
                 index: 4,
