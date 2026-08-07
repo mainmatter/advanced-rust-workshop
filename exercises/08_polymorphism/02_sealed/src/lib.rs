@@ -10,9 +10,14 @@
 //! method they need is public. Leave it alone.
 //!
 //! `State` and `Section` are the opposite: `ReadOnly`, `ReadWrite`, `Root` and `InBucket` are the only
-//! members that will ever make sense, and the impl blocks in this crate assume it. A
-//! `Transaction<MyOwnState>` would satisfy the bound and have no methods at all, because `insert` is
-//! defined on `Transaction<'_, ReadWrite>` and nothing else.
+//! members that will ever make sense. A `Transaction<MyOwnState>` would satisfy the bound and have no
+//! methods at all, because `insert` is defined on `Transaction<'_, ReadWrite>` and nothing else.
+//!
+//! Be clear about what the sealing does for `minidb` today: nothing. The traits are empty, no method
+//! dispatches on them, and the private fields already stop anyone building a `Transaction<MyOwnState>`.
+//! You are not closing a hole, you are buying an option, and it is only on sale before the crate is
+//! published. Sealing an open trait breaks every downstream implementor; unsealing later breaks
+//! nobody.
 //!
 //! So declare them, bound on them, and seal them:
 //!

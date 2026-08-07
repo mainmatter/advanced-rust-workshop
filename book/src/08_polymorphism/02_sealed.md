@@ -20,9 +20,8 @@ trait you write: **is a third-party implementation of this something I want to w
 method they need to do that is public.
 
 `State` and `Section` are not. `ReadOnly`, `ReadWrite`, `Root` and `InBucket` are the only members
-that will ever make sense, and the rest of the crate assumes it. A `Transaction<MyOwnState>` would
-satisfy the bound and have no methods at all, because `insert` is defined on
-`Transaction<'_, ReadWrite>` and nowhere else.
+that will ever make sense. A `Transaction<MyOwnState>` would satisfy the bound and have no methods at
+all, because `insert` is defined on `Transaction<'_, ReadWrite>` and nowhere else.
 
 Making a trait public and implementable is a promise. Sealing takes back half of it, and it is much
 easier to do now than after the trait has been published open.
@@ -59,10 +58,22 @@ minor release without breaking anyone. For an open trait, adding a required meth
 change, and adding a defaulted one still risks colliding with an implementor's inherent method.
 
 **Freedom to assume exhaustiveness.** If you know every implementor, you can match on them, add
-blanket impls, and rely on invariants the trait itself does not express. Every marker type here has
-matching impl blocks written by hand: that reasoning is only sound because the list is closed.
+blanket impls, and rely on invariants the trait itself does not express.
 
 **A clearer contract.** The trait becomes documentation of a closed set rather than an invitation.
+
+## What it does not buy, yet
+
+None of that is cashed in here. `State` and `Section` are empty, nothing dispatches on them, and
+`Transaction`'s private fields already stop an outside implementor from building a
+`Transaction<MyOwnState>`. Sealing changes no code that exists, and the `compile_fail` test in the
+exercise proves the mechanism works rather than that it matters.
+
+That is the normal case, and it is still the right call, because the decision is irreversible in one
+direction only. Sealing an open trait breaks every downstream implementor, so it can be done freely
+just once, before publication. Unsealing is available forever and breaks nobody. What you are buying
+is the option to add a method, or to assume the set is exhaustive, in a release you have not written
+yet, at a price that only stays low until the crate ships.
 
 ## When not to seal
 
