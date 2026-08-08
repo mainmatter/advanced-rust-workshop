@@ -1,13 +1,13 @@
 //! # Exercise
 //!
 //! Since chapter 6, `Transaction` and `Writer` have each carried a type parameter with nothing to
-//! say what may go in it. `Transaction<'_, u32>` is a nameable type. Nobody can build one, because the
-//! fields are private, but the crate never wrote down what the parameter means.
+//! say what may go in it. `Transaction<'_, u32>` is a nameable type. Nobody can build one, because
+//! the fields are private, but the crate never wrote down what the parameter means.
 //!
 //! Write it down, and in the same breath decide who is allowed to add to it.
 //!
-//! `Format` is an **extension point**. Someone else's crate should be able to add a format, and every
-//! method they need is public. Leave it alone.
+//! `Format` is an **extension point**. Someone else's crate should be able to add a format, and
+//! every method they need is public. Leave it alone.
 //!
 //! The two parameters are the opposite. Name them `AccessMode` on `Transaction` and `Position` on
 //! `Writer`: `ReadOnly`, `ReadWrite`, `Root` and `InBucket` are the only members that will ever
@@ -15,8 +15,8 @@
 //! because
 //! `insert` is defined on `Transaction<'_, ReadWrite>` and nothing else.
 //!
-//! Be clear about what the sealing does for `minidb` today: nothing. The traits are empty, no method
-//! dispatches on them, and the private fields already stop anyone building a
+//! Be clear about what the sealing does for `minidb` today: nothing. The traits are empty, no
+//! method dispatches on them, and the private fields already stop anyone building a
 //! `Transaction<MyOwnMode>`.
 //! You are not closing a hole, you are buying an option, and it is only on sale before the crate is
 //! published. Sealing an open trait breaks every downstream implementor; unsealing later breaks
@@ -32,8 +32,8 @@
 //! pub trait AccessMode: sealed::Sealed {}
 //! ```
 //!
-//! The module is private, so `sealed::Sealed` is unnameable outside this crate. A downstream crate can
-//! still *see* `AccessMode`, still write `T: AccessMode` bounds, still call everything: it just
+//! The module is private, so `sealed::Sealed` is unnameable outside this crate. A downstream crate
+//! can still *see* `AccessMode`, still write `T: AccessMode` bounds, still call everything: it just
 //! cannot implement it, because it cannot implement the supertrait.
 //!
 //! Do it for both `AccessMode` and `Position`, with one `sealed` module holding one `Sealed` trait,
@@ -41,9 +41,9 @@
 //!
 //! Then put the traits to work, which is what makes sealing them mean anything:
 //!
-//! - `Transaction<'store, A>`, `impl<A> Transaction<'_, A>` and `impl<A> Drop for Transaction<'_, A>`
-//!   all gain `where A: AccessMode`. A `Drop` impl must repeat its struct's bounds exactly, so all
-//!   three move together or none of them compile.
+//! - `Transaction<'store, A>`, `impl<A> Transaction<'_, A>` and `impl<A> Drop for Transaction<'_,
+//!   A>` all gain `where A: AccessMode`. A `Drop` impl must repeat its struct's bounds exactly, so
+//!   all three move together or none of them compile.
 //! - `Writer<P>` gains `where P: Position`.
 //!
 //! This exercise starts out **not compiling**: the doctest below is written against an `AccessMode`
@@ -70,11 +70,12 @@
 //! {
 //! }
 //! ```
-use std::collections::HashMap;
-use std::fmt::{self, Debug, Formatter};
-use std::marker::PhantomData;
-use std::mem;
-use std::thread;
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+    marker::PhantomData,
+    mem, thread,
+};
 
 const MAX_NAME_LENGTH: usize = 64;
 
@@ -91,8 +92,8 @@ impl Store {
         }
     }
 
-    /// Runs `changes` in a transaction, committing it if they succeed and rolling it back if they do
-    /// not.
+    /// Runs `changes` in a transaction, committing it if they succeed and rolling it back if they
+    /// do not.
     pub fn transaction<F, T, E>(&mut self, changes: F) -> Result<T, E>
     where
         F: FnOnce(&mut Transaction<'_, ReadWrite>) -> Result<T, E>,

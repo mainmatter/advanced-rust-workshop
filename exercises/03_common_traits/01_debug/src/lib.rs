@@ -1,26 +1,28 @@
 //! # Exercise
 //!
-//! `Bucket` and `Key` now derive `Debug`. That is one line each, it is the right default, and there is
-//! nothing to think about: a bucket name is not a secret, and a programmer staring at a panic message
-//! wants to see it.
+//! `Bucket` and `Key` now derive `Debug`. That is one line each, it is the right default, and there
+//! is nothing to think about: a bucket name is not a secret, and a programmer staring at a panic
+//! message wants to see it.
 //!
 //! `Value` is different. It holds whatever the user of `minidb` put in, which in the field means
-//! session tokens, email addresses and the occasional password. `Debug` is not a debugging aid for a
-//! type like this, it is the format your data arrives in when someone logs a struct that happens to
-//! contain one, or when a `.unwrap()` fails at three in the morning.
+//! session tokens, email addresses and the occasional password. `Debug` is not a debugging aid for
+//! a type like this, it is the format your data arrives in when someone logs a struct that happens
+//! to contain one, or when a `.unwrap()` fails at three in the morning.
 //!
-//! So `Value` gets a hand-written `Debug` that tells you what you need in order to debug and nothing
-//! you would regret:
+//! So `Value` gets a hand-written `Debug` that tells you what you need in order to debug and
+//! nothing you would regret:
 //!
 //! ```text
 //! Value(<redacted, 7 bytes>)
 //! ```
 //!
-//! Implement it. The length is deliberate: it is enough to tell an empty value from a truncated one,
-//! and useless to anyone reading your logs.
+//! Implement it. The length is deliberate: it is enough to tell an empty value from a truncated
+//! one, and useless to anyone reading your logs.
 
-use std::collections::HashMap;
-use std::fmt::{self, Debug, Formatter};
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+};
 
 const MAX_NAME_LENGTH: usize = 64;
 

@@ -1,8 +1,8 @@
 //! # Exercise
 //!
-//! An abandoned transaction should not quietly become permanent. Make the safe outcome the automatic
-//! one: implement `Drop` for `Transaction`, so a transaction that is neither committed nor rolled back
-//! undoes itself.
+//! An abandoned transaction should not quietly become permanent. Make the safe outcome the
+//! automatic one: implement `Drop` for `Transaction`, so a transaction that is neither committed
+//! nor rolled back undoes itself.
 //!
 //! Write the impl block yourself, and expect it to break code you have not touched. A type that
 //! implements `Drop` can no longer have its fields moved out, anywhere, because every value of it
@@ -10,16 +10,18 @@
 //! legally, and stops compiling the moment your impl exists.
 //!
 //! `mem::take` swaps in an empty `Vec` and gives you the full one, which is the usual way out.
-//! `Option::take` is the same trick for a single value. Once `rollback` compiles again, `drop` wants
-//! the same work and cannot call `rollback`, which consumes `self`, so the shared part belongs in a
-//! method taking `&mut self`.
+//! `Option::take` is the same trick for a single value. Once `rollback` compiles again, `drop`
+//! wants the same work and cannot call `rollback`, which consumes `self`, so the shared part
+//! belongs in a method taking `&mut self`.
 //!
 //! `commit` consumes `self` too, so a committed transaction is dropped the instant `commit` returns
-//! and your new `Drop` impl runs immediately afterwards. Make sure it does not undo the work that was
-//! just committed: `Drop` has to be able to tell that a decision was already made.
+//! and your new `Drop` impl runs immediately afterwards. Make sure it does not undo the work that
+//! was just committed: `Drop` has to be able to tell that a decision was already made.
 
-use std::collections::HashMap;
-use std::fmt::{self, Debug, Formatter};
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+};
 
 const MAX_NAME_LENGTH: usize = 64;
 

@@ -14,27 +14,29 @@
 //! ```
 //!
 //! `'store` is a lifetime parameter, and it is the first one you have to write yourself: elision
-//! covers functions, never structs. It says the transaction holds a reference valid over some region,
-//! that the struct is only valid over that same region, and therefore that a `Transaction` can never
-//! outlive the `Store` it came from.
+//! covers functions, never structs. It says the transaction holds a reference valid over some
+//! region, that the struct is only valid over that same region, and therefore that a `Transaction`
+//! can never outlive the `Store` it came from.
 //!
 //! `begin` still needs no name for it. `&mut self` is the only input lifetime, so the elided
 //! `Transaction<'_>` in the return type is given that one, and `'_` says out loud that there is a
-//! borrow inside that type without bothering to name it. The impl header takes the same `'_`, because
-//! the methods do not care which region it is.
+//! borrow inside that type without bothering to name it. The impl header takes the same `'_`,
+//! because the methods do not care which region it is.
 //!
 //! Four things change, and one disappears:
 //!
 //! 1. the struct gains `'store` and holds `&'store mut Store`;
 //! 2. `begin` takes `&mut self` and returns `Transaction<'_>`;
 //! 3. `commit` and `rollback` stop returning a `Store`, because the caller never gave it up;
-//! 4. `Transaction::get` goes away. The store is reachable again the moment the transaction ends, and
-//!    while one is open the borrow checker has opinions about reading it that are worth meeting in
-//!    the next chapter rather than working around here.
+//! 4. `Transaction::get` goes away. The store is reachable again the moment the transaction ends,
+//!    and while one is open the borrow checker has opinions about reading it that are worth meeting
+//!    in the next chapter rather than working around here.
 //!
 //! This exercise starts out **not compiling**: the tests are written against the borrowing version.
-use std::collections::HashMap;
-use std::fmt::{self, Debug, Formatter};
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+};
 
 const MAX_NAME_LENGTH: usize = 64;
 

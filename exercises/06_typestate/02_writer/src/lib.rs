@@ -1,8 +1,8 @@
 //! # Exercise
 //!
-//! `ReadOnly` and `ReadWrite` are states that never change: a transaction is born in one of them and
-//! dies in it. This exercise is the other half of the pattern, where the state moves, and the type
-//! moves with it.
+//! `ReadOnly` and `ReadWrite` are states that never change: a transaction is born in one of them
+//! and dies in it. This exercise is the other half of the pattern, where the state moves, and the
+//! type moves with it.
 //!
 //! `Store::export` is already written, and it does not compile, because it sorts `Bucket`s and
 //! `Key`s that cannot yet be compared. The `Writer` struct and its two sections are here too, but
@@ -53,11 +53,12 @@
 //! Writer::new().bucket(&users).finish();
 //! ```
 
-use std::collections::HashMap;
-use std::fmt::{self, Debug, Formatter};
-use std::marker::PhantomData;
-use std::mem;
-use std::thread;
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+    marker::PhantomData,
+    mem, thread,
+};
 
 const MAX_NAME_LENGTH: usize = 64;
 
@@ -74,8 +75,8 @@ impl Store {
         }
     }
 
-    /// Runs `changes` in a transaction, committing it if they succeed and rolling it back if they do
-    /// not.
+    /// Runs `changes` in a transaction, committing it if they succeed and rolling it back if they
+    /// do not.
     pub fn transaction<F, T, E>(&mut self, changes: F) -> Result<T, E>
     where
         F: FnOnce(&mut Transaction<'_, ReadWrite>) -> Result<T, E>,

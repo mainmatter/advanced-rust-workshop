@@ -1,7 +1,7 @@
 //! # Exercise
 //!
-//! `Bucket` and `Key` are distinct types now, but they still accept anything. A key can be empty, or
-//! a megabyte of user-supplied bytes, and nothing stops it.
+//! `Bucket` and `Key` are distinct types now, but they still accept anything. A key can be empty,
+//! or a megabyte of user-supplied bytes, and nothing stops it.
 //!
 //! Implement `Bucket::parse` and `Key::parse`. A name is valid when it is:
 //!

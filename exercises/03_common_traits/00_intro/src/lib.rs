@@ -5,8 +5,8 @@
 //! `Key` is exactly the type we wanted at the end of the last chapter: it cannot be confused with a
 //! `Bucket`, it cannot hold an invalid name, and it cannot be built without going through `parse`.
 //!
-//! It also cannot be printed, compared, or used as a key in a `HashMap`, which is an odd thing to say
-//! about a type called `Key`. All three of these are proof, not prose:
+//! It also cannot be printed, compared, or used as a key in a `HashMap`, which is an odd thing to
+//! say about a type called `Key`. All three of these are proof, not prose:
 //!
 //! ```compile_fail,E0277
 //! use common_traits_intro::Key;

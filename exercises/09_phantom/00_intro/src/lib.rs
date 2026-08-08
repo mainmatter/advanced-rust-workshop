@@ -7,8 +7,8 @@
 //! not express. `PhantomData<T>` makes a struct behave, for the compiler's purposes, as though it
 //! contained a `T`, for ownership, variance, auto traits and drop checking.
 //!
-//! Auto traits are the visible one. A marker nobody reads still decides whether your type can cross a
-//! thread boundary:
+//! Auto traits are the visible one. A marker nobody reads still decides whether your type can cross
+//! a thread boundary:
 //!
 //! ```compile_fail,E0277
 //! use std::marker::PhantomData;
@@ -41,11 +41,12 @@ mod sealed {
     pub trait Sealed {}
 }
 
-use std::collections::HashMap;
-use std::fmt::{self, Debug, Formatter};
-use std::marker::PhantomData;
-use std::mem;
-use std::thread;
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+    marker::PhantomData,
+    mem, thread,
+};
 
 const MAX_NAME_LENGTH: usize = 64;
 
@@ -62,8 +63,8 @@ impl Store {
         }
     }
 
-    /// Runs `changes` in a transaction, committing it if they succeed and rolling it back if they do
-    /// not.
+    /// Runs `changes` in a transaction, committing it if they succeed and rolling it back if they
+    /// do not.
     pub fn transaction<F, T, E>(&mut self, changes: F) -> Result<T, E>
     where
         F: FnOnce(&mut Transaction<'_, ReadWrite>) -> Result<T, E>,

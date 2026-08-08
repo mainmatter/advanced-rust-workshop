@@ -18,13 +18,14 @@
 //! that could forget is code you just wrote once. Keep it armed anyway, for the callers who still
 //! reach for `begin`.
 //!
-//! This exercise starts out **not compiling**: the tests are written against the method you are about
-//! to add.
+//! This exercise starts out **not compiling**: the tests are written against the method you are
+//! about to add.
 
-use std::collections::HashMap;
-use std::fmt::{self, Debug, Formatter};
-use std::mem;
-use std::thread;
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+    mem, thread,
+};
 
 const MAX_NAME_LENGTH: usize = 64;
 

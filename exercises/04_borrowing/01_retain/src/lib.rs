@@ -8,8 +8,8 @@
 //!     F: FnMut(&Bucket, &Key, &Value) -> bool,
 //! ```
 //!
-//! The `mut` on `predicate` is there because calling an `FnMut` needs an exclusive binding, whichever
-//! way you go about the rest.
+//! The `mut` on `predicate` is there because calling an `FnMut` needs an exclusive binding,
+//! whichever way you go about the rest.
 //!
 //! Every value the predicate rejects is removed, and a bucket left holding nothing disappears with
 //! it, so it stops showing up in `buckets()`.
@@ -23,15 +23,17 @@
 //!
 //! - collect what you want to delete into a `Vec` first, then delete in a second pass. The general
 //!   answer, and it costs an allocation.
-//! - `HashMap::retain`, which does the whole job in one pass because it was written from the inside,
-//!   where the borrow is not a problem.
-//! - restructure so the mutation happens through the iterator itself, which for a map means `retain`
-//!   or `drain`, and for a `Vec` also `retain_mut`.
+//! - `HashMap::retain`, which does the whole job in one pass because it was written from the
+//!   inside, where the borrow is not a problem.
+//! - restructure so the mutation happens through the iterator itself, which for a map means
+//!   `retain` or `drain`, and for a `Vec` also `retain_mut`.
 //!
 //! Any of them passes the tests.
 
-use std::collections::HashMap;
-use std::fmt::{self, Debug, Formatter};
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+};
 
 const MAX_NAME_LENGTH: usize = 64;
 

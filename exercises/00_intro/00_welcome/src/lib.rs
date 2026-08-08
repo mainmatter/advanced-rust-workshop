@@ -2,8 +2,8 @@
 //!
 //! Make the test at the bottom of this file pass.
 //!
-//! It is not a hard one. The point is to check that your toolchain works and that you know the loop:
-//! run `wr`, read the failure, fix the code, run `wr` again.
+//! It is not a hard one. The point is to check that your toolchain works and that you know the
+//! loop: run `wr`, read the failure, fix the code, run `wr` again.
 //!
 //! Some exercises hand you a `todo!()` to replace. In others there is nothing to replace: the text
 //! above tells you what to add, and the tests show you its shape. You can also run the tests

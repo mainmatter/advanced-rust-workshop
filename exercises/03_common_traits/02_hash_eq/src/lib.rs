@@ -1,24 +1,26 @@
 //! # Exercise
 //!
-//! A type called `Key` that cannot be a key in a `HashMap` is a joke at your own expense. Fix it, and
-//! then collect the winnings.
+//! A type called `Key` that cannot be a key in a `HashMap` is a joke at your own expense. Fix it,
+//! and then collect the winnings.
 //!
-//! 1. Derive `PartialEq`, `Eq`, `Hash` and `Clone` on `Bucket` and `Key`. Derive all four together and
-//!    never hand-write only one of `Hash` and `PartialEq`: the contract is that equal values hash
-//!    equally, and the derives are the only way to keep that true for free.
+//! 1. Derive `PartialEq`, `Eq`, `Hash` and `Clone` on `Bucket` and `Key`. Derive all four together
+//!    and never hand-write only one of `Hash` and `PartialEq`: the contract is that equal values
+//!    hash equally, and the derives are the only way to keep that true for free.
 //! 2. Now that the newtypes can be map keys, store them as map keys: `Store` should hold a
 //!    `HashMap<Bucket, HashMap<Key, Value>>`. All the `as_str().to_owned()` juggling in `insert`,
 //!    `get` and `remove` goes away.
-//! 3. Add `Store::buckets(&self) -> impl Iterator<Item = &Bucket>`. This one only compiles once step 2
-//!    is done, which is the point: a store keyed by `String` cannot hand out a `&Bucket` it does not
-//!    have.
+//! 3. Add `Store::buckets(&self) -> impl Iterator<Item = &Bucket>`. This one only compiles once
+//!    step 2 is done, which is the point: a store keyed by `String` cannot hand out a `&Bucket` it
+//!    does not have.
 //! 4. Add `impl TryFrom<&str> for Key`, delegating to `Key::parse`. Same check, same error, second
 //!    door, and this one is the door generic code knocks on.
 //!
 //! This exercise starts out **not compiling**: the tests are written against all four.
 
-use std::collections::HashMap;
-use std::fmt::{self, Debug, Formatter};
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+};
 
 const MAX_NAME_LENGTH: usize = 64;
 

@@ -12,11 +12,11 @@
 //! ```
 //!
 //! It borrows, and then immediately clones, because a map has to own its keys. The signature says
-//! "lend me these" and the body says "actually, mine now". Two allocations per insert that the caller
-//! cannot see, cannot avoid, and is not told about.
+//! "lend me these" and the body says "actually, mine now". Two allocations per insert that the
+//! caller cannot see, cannot avoid, and is not told about.
 //!
-//! `HashMap` does not do this. `insert(K, V)` takes ownership because it needs ownership, and `get(&Q)`
-//! borrows because it does not. The asymmetry is the API telling you the truth.
+//! `HashMap` does not do this. `insert(K, V)` takes ownership because it needs ownership, and
+//! `get(&Q)` borrows because it does not. The asymmetry is the API telling you the truth.
 //!
 //! Make `minidb` tell the truth too:
 //!
@@ -24,8 +24,9 @@
 //! Store::insert(&mut self, bucket: Bucket, key: Key, value: Value) -> Option<Value>
 //! ```
 //!
-//! and delete the two `clone` calls the body no longer needs. Leave `get` and `remove` taking shared
-//! references: they genuinely only need to look, and a caller who still owns its names can keep them.
+//! and delete the two `clone` calls the body no longer needs. Leave `get` and `remove` taking
+//! shared references: they genuinely only need to look, and a caller who still owns its names can
+//! keep them.
 //!
 //! Afterwards the cost is where the caller can see it:
 //!
@@ -43,8 +44,10 @@
 //!
 //! This exercise starts out **not compiling**: the tests are written against the new signatures.
 
-use std::collections::HashMap;
-use std::fmt::{self, Debug, Formatter};
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+};
 
 const MAX_NAME_LENGTH: usize = 64;
 

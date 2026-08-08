@@ -4,11 +4,11 @@
 //!
 //! Three things are broken here, and each one fails differently:
 //!
-//! 1. `#![deny(missing_docs)]` is on, and three public methods have no documentation. The crate does
-//!    not build until they do.
+//! 1. `#![deny(missing_docs)]` is on, and three public methods have no documentation. The crate
+//!    does not build until they do.
 //! 2. Two examples still call the old names. Examples are compiled and run by `cargo test`, so they
-//!    are the only part of a doc comment that cannot quietly rot. These have rotted anyway, which is
-//!    what happens when nobody runs them.
+//!    are the only part of a doc comment that cannot quietly rot. These have rotted anyway, which
+//!    is what happens when nobody runs them.
 //! 3. One doc comment describes behaviour this code does not have, and its example asserts the same
 //!    falsehood. Fix the prose and the example together: decide which one is telling the truth.
 //!

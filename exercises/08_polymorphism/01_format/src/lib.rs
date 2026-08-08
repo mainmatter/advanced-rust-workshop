@@ -11,8 +11,8 @@
 //! ```
 //!
 //! Implement it twice. `Ini` produces exactly what `export` produces today, and `Csv` produces one
-//! `bucket,key,value` line per entry with no headings. Both need a `Default` impl, and both are just
-//! a `String` that gets pushed to.
+//! `bucket,key,value` line per entry with no headings. Both need a `Default` impl, and both are
+//! just a `String` that gets pushed to.
 //!
 //! Then give `Store` both ways to use it:
 //!
@@ -25,20 +25,20 @@
 //! passing.
 //!
 //! Both new methods walk buckets and keys in sorted order, exactly as `export` already does. Write
-//! that walk **once**, in a private `render(&self, format: &mut dyn Format) -> String`, and make both
-//! public methods one line each. `export_with` is generic, so the compiler copies its body per format:
-//! keep that body as small as you can and let the copies share the real work.
+//! that walk **once**, in a private `render(&self, format: &mut dyn Format) -> String`, and make
+//! both public methods one line each. `export_with` is generic, so the compiler copies its body per
+//! format: keep that body as small as you can and let the copies share the real work.
 //!
-//! Note what the trait signature is *not*. `fn finish(self) -> String` would read better, and it would
-//! make the trait dyn-incompatible: a trait object has no size, so a method taking `self` by value has
-//! nothing to move. Same for a generic method, or a method returning `impl Trait`. Being usable as
-//! `dyn` is a constraint on the trait, and you pay for it in the signature whether or not anyone ever
-//! writes `dyn`.
+//! Note what the trait signature is *not*. `fn finish(self) -> String` would read better, and it
+//! would make the trait dyn-incompatible: a trait object has no size, so a method taking `self` by
+//! value has nothing to move. Same for a generic method, or a method returning `impl Trait`. Being
+//! usable as `dyn` is a constraint on the trait, and you pay for it in the signature whether or not
+//! anyone ever writes `dyn`.
 //!
 //! `where Self: Sized` is the escape hatch elsewhere, and it is no help here. It keeps the trait
-//! dyn-compatible by leaving the method out of the vtable, so `finish` would become uncallable through
-//! the `&mut dyn Format` that `export_into` holds, which is the only way `export_into` can finish at
-//! all.
+//! dyn-compatible by leaving the method out of the vtable, so `finish` would become uncallable
+//! through the `&mut dyn Format` that `export_into` holds, which is the only way `export_into` can
+//! finish at all.
 //!
 //! Here is what that constraint buys, and it is not nothing:
 //!
@@ -61,11 +61,12 @@
 //! ```
 //!
 //! This exercise starts out **not compiling**: the tests name the new types.
-use std::collections::HashMap;
-use std::fmt::{self, Debug, Formatter};
-use std::marker::PhantomData;
-use std::mem;
-use std::thread;
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+    marker::PhantomData,
+    mem, thread,
+};
 
 const MAX_NAME_LENGTH: usize = 64;
 
@@ -82,8 +83,8 @@ impl Store {
         }
     }
 
-    /// Runs `changes` in a transaction, committing it if they succeed and rolling it back if they do
-    /// not.
+    /// Runs `changes` in a transaction, committing it if they succeed and rolling it back if they
+    /// do not.
     pub fn transaction<F, T, E>(&mut self, changes: F) -> Result<T, E>
     where
         F: FnOnce(&mut Transaction<'_, ReadWrite>) -> Result<T, E>,

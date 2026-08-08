@@ -19,15 +19,15 @@
 //! - **the supertrait** `: Iterator` gives the default method body access to `self.collect()`, and
 //!   restricts the impl to iterators;
 //! - **the blanket impl** covers every iterator that exists or ever will, including yours;
-//! - **`Self: Sized`** on the method, not the trait, keeps `IteratorExt` usable as `dyn IteratorExt`
-//!   while still allowing a method that consumes `self`.
+//! - **`Self: Sized`** on the method, not the trait, keeps `IteratorExt` usable as `dyn
+//!   IteratorExt` while still allowing a method that consumes `self`.
 //!
 //! Give the method a default body in the trait so the blanket impl is empty. Then
-//! `store.buckets().collect_sorted()` works, and so does the same call on a `Vec`, a `HashMap`, or a
-//! range.
+//! `store.buckets().collect_sorted()` works, and so does the same call on a `Vec`, a `HashMap`, or
+//! a range.
 //!
-//! Adding a method to every iterator is not free. If two traits in scope both offer `collect_sorted`,
-//! neither wins:
+//! Adding a method to every iterator is not free. If two traits in scope both offer
+//! `collect_sorted`, neither wins:
 //!
 //! ```compile_fail,E0034
 //! use extension_traits_iter_ext::IteratorExt;
@@ -48,17 +48,18 @@
 //! let sorted = [3u8, 1, 2].into_iter().collect_sorted();
 //! ```
 //!
-//! The caller has to disambiguate with `IteratorExt::collect_sorted(iter)`, and they did not ask for
-//! that problem. It is the strongest argument for keeping extension traits small.
+//! The caller has to disambiguate with `IteratorExt::collect_sorted(iter)`, and they did not ask
+//! for that problem. It is the strongest argument for keeping extension traits small.
 //!
 //! This exercise starts out **not compiling**: the tests import `IteratorExt`, which does not exist
 //! yet.
 
-use std::collections::HashMap;
-use std::fmt::{self, Debug, Formatter};
-use std::marker::PhantomData;
-use std::mem;
-use std::thread;
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+    marker::PhantomData,
+    mem, thread,
+};
 
 const MAX_NAME_LENGTH: usize = 64;
 
@@ -75,8 +76,8 @@ impl Store {
         }
     }
 
-    /// Runs `changes` in a transaction, committing it if they succeed and rolling it back if they do
-    /// not.
+    /// Runs `changes` in a transaction, committing it if they succeed and rolling it back if they
+    /// do not.
     pub fn transaction<F, T, E>(&mut self, changes: F) -> Result<T, E>
     where
         F: FnOnce(&mut Transaction<'_, ReadWrite>) -> Result<T, E>,

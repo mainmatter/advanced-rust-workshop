@@ -3,8 +3,8 @@
 //! Nothing to write here. Read the two tests, run `wr`, and move on.
 //!
 //! `minidb` has a new requirement: reporting code should be able to open a transaction that is
-//! guaranteed not to write anything. The obvious implementation is in front of you, and it is the one
-//! most codebases ship: a flag on the struct, checked on the way in.
+//! guaranteed not to write anything. The obvious implementation is in front of you, and it is the
+//! one most codebases ship: a flag on the struct, checked on the way in.
 //!
 //! It works. Every rule is enforced. The enforcement just happens at the worst possible moment.
 //!
@@ -12,10 +12,11 @@
 //! that reaches production if any path was untested, and a `# Panics` section in the documentation
 //! that a caller has to read and remember.
 
-use std::collections::HashMap;
-use std::fmt::{self, Debug, Formatter};
-use std::mem;
-use std::thread;
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+    mem, thread,
+};
 
 const MAX_NAME_LENGTH: usize = 64;
 
@@ -32,8 +33,8 @@ impl Store {
         }
     }
 
-    /// Runs `changes` in a transaction, committing it if they succeed and rolling it back if they do
-    /// not.
+    /// Runs `changes` in a transaction, committing it if they succeed and rolling it back if they
+    /// do not.
     pub fn transaction<F, T, E>(&mut self, changes: F) -> Result<T, E>
     where
         F: FnOnce(&mut Transaction<'_>) -> Result<T, E>,

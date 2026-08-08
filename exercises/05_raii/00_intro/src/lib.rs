@@ -2,11 +2,11 @@
 //!
 //! Nothing to write here. Read the four tests, run `wr`, and move on.
 //!
-//! `minidb` has transactions. A `Transaction` applies each change to the store as it goes and records
-//! how to undo it, so `rollback` can put everything back, and `commit` keeps the changes.
+//! `minidb` has transactions. A `Transaction` applies each change to the store as it goes and
+//! records how to undo it, so `rollback` can put everything back, and `commit` keeps the changes.
 //!
-//! Building one needs the transaction to reach the store somehow, and there is exactly one way to do
-//! that with what you have met so far: give it the store.
+//! Building one needs the transaction to reach the store somehow, and there is exactly one way to
+//! do that with what you have met so far: give it the store.
 //!
 //! ```text
 //! Store::begin(self) -> Transaction
@@ -19,16 +19,18 @@
 //! - the store is *inside* the transaction, so `Transaction` has to grow its own copy of every
 //!   `Store` method a caller might want. `get` is the first one, and it would not be the last;
 //! - every call site has to catch the store on the way out: `let store = tx.commit();`;
-//! - `commit` and `rollback` both return a `Store`, so the return type says nothing about committing
-//!   or rolling back. It is bookkeeping;
-//! - an early return does not leave half the work behind, it loses the whole store, because the store
-//!   is inside the value that just went out of scope.
+//! - `commit` and `rollback` both return a `Store`, so the return type says nothing about
+//!   committing or rolling back. It is bookkeeping;
+//! - an early return does not leave half the work behind, it loses the whole store, because the
+//!   store is inside the value that just went out of scope.
 //!
-//! What we want is for the store to stay where it is and lend itself to the transaction for a while.
-//! Lending exclusively is what `&mut` is for, and a struct that keeps one needs a lifetime. That is
-//! the next exercise.
-use std::collections::HashMap;
-use std::fmt::{self, Debug, Formatter};
+//! What we want is for the store to stay where it is and lend itself to the transaction for a
+//! while. Lending exclusively is what `&mut` is for, and a struct that keeps one needs a lifetime.
+//! That is the next exercise.
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+};
 
 const MAX_NAME_LENGTH: usize = 64;
 

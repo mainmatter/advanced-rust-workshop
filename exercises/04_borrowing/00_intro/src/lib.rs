@@ -13,9 +13,9 @@
 //! that no other path to the value exists, and being allowed to change things is what that promise
 //! buys.
 //!
-//! The rule is one line long: **any number of shared references, or exactly one exclusive reference,
-//! never both**. Aliasing XOR mutation. Hold a value borrowed out of the store, then change the
-//! store, and you are asking for both:
+//! The rule is one line long: **any number of shared references, or exactly one exclusive
+//! reference, never both**. Aliasing XOR mutation. Hold a value borrowed out of the store, then
+//! change the store, and you are asking for both:
 //!
 //! ```compile_fail,E0502
 //! use borrowing_intro::{Bucket, Key, Store, Value};
@@ -47,8 +47,8 @@
 //! ```
 //!
 //! Every reference is valid over a **region** of the code, and a **lifetime** is the name of that
-//! region. The region ends at the reference's last use, not at the closing brace, which is why moving
-//! one line makes the first example compile:
+//! region. The region ends at the reference's last use, not at the closing brace, which is why
+//! moving one line makes the first example compile:
 //!
 //! ```
 //! use borrowing_intro::{Bucket, Key, Store, Value};
@@ -64,9 +64,9 @@
 //! store.insert(&users, &id, Value::new("Bob"));
 //! ```
 //!
-//! That is **non-lexical lifetimes**, and it is younger than the language: before Rust 2018 a borrow
-//! really did run to the end of its block, and this version had to be written with an extra scope
-//! around the read.
+//! That is **non-lexical lifetimes**, and it is younger than the language: before Rust 2018 a
+//! borrow really did run to the end of its block, and this version had to be written with an extra
+//! scope around the read.
 //!
 //! You seldom write a lifetime down, because most of them are inferred. `Store::get` is declared
 //!
@@ -83,13 +83,15 @@
 //! Three rules do that, and they are the whole of **lifetime elision** for functions: every elided
 //! input lifetime becomes its own parameter; if there is exactly one input lifetime, every elided
 //! output gets it; and if one input is `&self`, every elided output gets `self`'s lifetime instead.
-//! The `Formatter<'_>` you wrote in chapter 3 is the third spelling, the **anonymous lifetime**: there
-//! is a borrow in that type and it is not worth naming.
+//! The `Formatter<'_>` you wrote in chapter 3 is the third spelling, the **anonymous lifetime**:
+//! there is a borrow in that type and it is not worth naming.
 //!
-//! None of those rules apply to a struct that holds a reference, where you have to write the lifetime
-//! yourself. That is chapter 5.
-use std::collections::HashMap;
-use std::fmt::{self, Debug, Formatter};
+//! None of those rules apply to a struct that holds a reference, where you have to write the
+//! lifetime yourself. That is chapter 5.
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+};
 
 const MAX_NAME_LENGTH: usize = 64;
 

@@ -1,8 +1,9 @@
 //! # Exercise
 //!
-//! The finale. `Key::parse("42")` produces a key that works with **any** store, so nothing stops you
-//! reading store A with a key you built while thinking about store B. It compiles, it returns `None`
-//! or the wrong row, and it is a genuine class of bug in systems with more than one namespace.
+//! The finale. `Key::parse("42")` produces a key that works with **any** store, so nothing stops
+//! you reading store A with a key you built while thinking about store B. It compiles, it returns
+//! `None` or the wrong row, and it is a genuine class of bug in systems with more than one
+//! namespace.
 //!
 //! Fix it by giving each store a lifetime that belongs to nobody else:
 //!
@@ -32,10 +33,10 @@
 //! expect a particular one. Each call to `scope` therefore gets a fresh, anonymous lifetime that no
 //! other call can name.
 //!
-//! **`PhantomData<fn(&'brand ()) -> &'brand ()>`** makes `'brand` **invariant**. A covariant lifetime
-//! could be shortened to match another one, and the brands would unify. `fn(T) -> T` is the standard
-//! way to spell invariance, because a function type is contravariant in its argument and covariant in
-//! its return, and the only lifetime satisfying both is the exact one.
+//! **`PhantomData<fn(&'brand ()) -> &'brand ()>`** makes `'brand` **invariant**. A covariant
+//! lifetime could be shortened to match another one, and the brands would unify. `fn(T) -> T` is
+//! the standard way to spell invariance, because a function type is contravariant in its argument
+//! and covariant in its return, and the only lifetime satisfying both is the exact one.
 //!
 //! The pay-off, which must not compile:
 //!
@@ -61,11 +62,12 @@ mod sealed {
     pub trait Sealed {}
 }
 
-use std::collections::HashMap;
-use std::fmt::{self, Debug, Formatter};
-use std::marker::PhantomData;
-use std::mem;
-use std::thread;
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+    marker::PhantomData,
+    mem, thread,
+};
 
 const MAX_NAME_LENGTH: usize = 64;
 
@@ -82,8 +84,8 @@ impl Store {
         }
     }
 
-    /// Runs `changes` in a transaction, committing it if they succeed and rolling it back if they do
-    /// not.
+    /// Runs `changes` in a transaction, committing it if they succeed and rolling it back if they
+    /// do not.
     pub fn transaction<F, T, E>(&mut self, changes: F) -> Result<T, E>
     where
         F: FnOnce(&mut Transaction<'_, ReadWrite>) -> Result<T, E>,

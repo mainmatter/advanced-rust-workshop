@@ -1,8 +1,8 @@
 //! # Exercise
 //!
 //! `Key::parse` rejects invalid keys. `Key("".to_owned())` builds one anyway, and so does
-//! `key.0.push(' ')`. The invariant you just wrote holds for exactly as long as nobody reaches around
-//! it, which in a shared codebase is about a week.
+//! `key.0.push(' ')`. The invariant you just wrote holds for exactly as long as nobody reaches
+//! around it, which in a shared codebase is about a week.
 //!
 //! Close the hole:
 //!
@@ -11,9 +11,9 @@
 //! - implement `into_inner(self) -> String` for callers who want the name back;
 //! - and switch `Store` over to `as_str`, which currently reaches straight into the field.
 //!
-//! Note what `into_inner` does and does not give away: a `String` you can do anything with, but no way
-//! to put it back into a `Key` without going through `parse`. Giving out `&mut String` would be a
-//! different story, which is why neither type does.
+//! Note what `into_inner` does and does not give away: a `String` you can do anything with, but no
+//! way to put it back into a `Key` without going through `parse`. Giving out `&mut String` would be
+//! a different story, which is why neither type does.
 //!
 //! Resist `impl Deref<Target = String>`. It would make every `String` method show up on `Key`,
 //! including the ones that break it.

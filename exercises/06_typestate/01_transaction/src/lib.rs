@@ -7,19 +7,21 @@
 //!
 //! 1. `Transaction<'store, A>`, with a `PhantomData<A>` field. `PhantomData` is how you use a type
 //!    parameter you do not store a value of; it is zero-sized, so the struct does not grow.
-//! 2. `begin` returns `Transaction<'_, ReadWrite>`, `begin_read` returns `Transaction<'_, ReadOnly>`.
+//! 2. `begin` returns `Transaction<'_, ReadWrite>`, `begin_read` returns `Transaction<'_,
+//!    ReadOnly>`.
 //! 3. Split the methods across two impl blocks: `get` and the private `undo_everything` go in
-//!    `impl<A> Transaction<'_, A>`, and `insert`, `remove`, `commit` and `rollback` go in
-//!    `impl Transaction<'_, ReadWrite>`.
-//! 4. Delete the `read_only` field, both asserts and both `# Panics` sections. That is the point: the
-//!    runtime check is gone, not moved.
+//!    `impl<A> Transaction<'_, A>`, and `insert`, `remove`, `commit` and `rollback` go in `impl
+//!    Transaction<'_, ReadWrite>`.
+//! 4. Delete the `read_only` field, both asserts and both `# Panics` sections. That is the point:
+//!    the runtime check is gone, not moved.
 //!
-//! `Store::transaction` hands out a `&mut Transaction<'_, ReadWrite>`, so its closure keeps working.
+//! `Store::transaction` hands out a `&mut Transaction<'_, ReadWrite>`, so its closure keeps
+//! working.
 //!
-//! Nothing stops anyone writing `Transaction<'_, u32>` as a type. Nothing useful can be done with one
-//! either: the fields are private and `begin` and `begin_read` are the only ways to get a value.
-//! Closing the set properly needs a trait, and that is chapter 8's job, along with the reason a real
-//! library would not let you implement it.
+//! Nothing stops anyone writing `Transaction<'_, u32>` as a type. Nothing useful can be done with
+//! one either: the fields are private and `begin` and `begin_read` are the only ways to get a
+//! value. Closing the set properly needs a trait, and that is chapter 8's job, along with the
+//! reason a real library would not let you implement it.
 //!
 //! Two things must stop compiling. Writing through a read-only transaction:
 //!
@@ -47,11 +49,12 @@
 //!
 //! This exercise starts out **not compiling**: the tests name the new types.
 
-use std::collections::HashMap;
-use std::fmt::{self, Debug, Formatter};
-use std::marker::PhantomData;
-use std::mem;
-use std::thread;
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+    marker::PhantomData,
+    mem, thread,
+};
 
 const MAX_NAME_LENGTH: usize = 64;
 
@@ -68,8 +71,8 @@ impl Store {
         }
     }
 
-    /// Runs `changes` in a transaction, committing it if they succeed and rolling it back if they do
-    /// not.
+    /// Runs `changes` in a transaction, committing it if they succeed and rolling it back if they
+    /// do not.
     pub fn transaction<F, T, E>(&mut self, changes: F) -> Result<T, E>
     where
         F: FnOnce(&mut Transaction<'_>) -> Result<T, E>,

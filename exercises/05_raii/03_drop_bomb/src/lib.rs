@@ -5,15 +5,15 @@
 //! into production disguised as a design decision.
 //!
 //! Arm the guard. Turn `Transaction` into a **drop bomb**: dropping one that was neither committed
-//! nor rolled back still undoes the work, and then panics, because reaching that line is a bug in the
-//! calling code.
+//! nor rolled back still undoes the work, and then panics, because reaching that line is a bug in
+//! the calling code.
 //!
-//! The struct already carries a `finished` flag for you. Make `commit` and `rollback` set it, and make
-//! `drop` react to it.
+//! The struct already carries a `finished` flag for you. Make `commit` and `rollback` set it, and
+//! make `drop` react to it.
 //!
 //! One rule you must not skip. A panic while another panic is unwinding aborts the process
-//! immediately: no unwinding, no test failure, no message, just a dead process. So a drop bomb has to
-//! ask first:
+//! immediately: no unwinding, no test failure, no message, just a dead process. So a drop bomb has
+//! to ask first:
 //!
 //! ```text
 //! if !thread::panicking() {
@@ -21,13 +21,14 @@
 //! }
 //! ```
 //!
-//! The last test proves it. If you get this wrong it will not fail, it will take the whole test binary
-//! down with it, which is exactly how this bug presents itself in real code.
+//! The last test proves it. If you get this wrong it will not fail, it will take the whole test
+//! binary down with it, which is exactly how this bug presents itself in real code.
 
-use std::collections::HashMap;
-use std::fmt::{self, Debug, Formatter};
-use std::mem;
-use std::thread;
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+    mem, thread,
+};
 
 const MAX_NAME_LENGTH: usize = 64;
 
