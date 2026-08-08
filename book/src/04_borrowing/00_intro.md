@@ -61,9 +61,11 @@ and the version above had to be written with an extra scope around the read pure
 early. **Non-lexical lifetimes** replaced the block with the actual span of use, and a large class of
 "the borrow checker is wrong" complaints disappeared with it.
 
-One wrinkle is worth carrying into the next chapter: a value whose type implements `Drop` is _used_ at
-the point where it is dropped, so its borrow does run to the end of the scope after all. That is
-exactly what a guard wants.
+One wrinkle is worth carrying into the next chapter. Every value is dropped at the end of its scope,
+`Drop` impl or not; the drop point is the same either way. What a `Drop` impl changes is that the
+compiler counts that drop as a _use_, because `drop` takes `&mut self` and could read whatever the
+value borrows. So the borrow cannot end early, and runs to the drop point instead. A type with no
+`Drop` impl of its own inherits this from any field that has one. That is exactly what a guard wants.
 
 ## The ones you never write
 
