@@ -51,11 +51,8 @@ impl Store {
     }
 
     /// Inserts a value, returning the value it replaced, if any.
-    pub fn insert(&mut self, bucket: &Bucket, key: &Key, value: Value) -> Option<Value> {
-        self.buckets
-            .entry(bucket.clone())
-            .or_default()
-            .insert(key.clone(), value)
+    pub fn insert(&mut self, bucket: Bucket, key: Key, value: Value) -> Option<Value> {
+        self.buckets.entry(bucket).or_default().insert(key, value)
     }
 
     /// Looks up a value.
@@ -72,6 +69,17 @@ impl Store {
     pub fn buckets(&self) -> impl Iterator<Item = &Bucket> {
         self.buckets.keys()
     }
+
+    /// Keeps only the values the predicate accepts, dropping any bucket left empty.
+    pub fn retain<F>(&mut self, mut predicate: F)
+    where
+        F: FnMut(&Bucket, &Key, &Value) -> bool,
+    {
+        self.buckets.retain(|bucket, values| {
+            values.retain(|key, value| predicate(bucket, key, value));
+            !values.is_empty()
+        });
+    }
 }
 
 /// A set of changes applied to a [`Store`] together.
@@ -86,21 +94,21 @@ pub struct Transaction<'store> {
 
 impl Transaction<'_> {
     /// Inserts a value as part of this transaction.
-    pub fn insert(&mut self, bucket: &Bucket, key: &Key, value: Value) {
-        let previous = self.store.insert(bucket, key, value);
+    pub fn insert(&mut self, bucket: Bucket, key: Key, value: Value) {
+        let previous = self.store.insert(bucket.clone(), key.clone(), value);
         self.undo.push(Undo {
-            bucket: bucket.clone(),
-            key: key.clone(),
+            bucket,
+            key,
             previous,
         });
     }
 
     /// Removes a value as part of this transaction.
-    pub fn remove(&mut self, bucket: &Bucket, key: &Key) {
-        let previous = self.store.remove(bucket, key);
+    pub fn remove(&mut self, bucket: Bucket, key: Key) {
+        let previous = self.store.remove(&bucket, &key);
         self.undo.push(Undo {
-            bucket: bucket.clone(),
-            key: key.clone(),
+            bucket,
+            key,
             previous,
         });
     }
@@ -120,7 +128,7 @@ impl Transaction<'_> {
     fn undo_everything(&mut self) {
         for undo in mem::take(&mut self.undo).into_iter().rev() {
             match undo.previous {
-                Some(value) => self.store.insert(&undo.bucket, &undo.key, value),
+                Some(value) => self.store.insert(undo.bucket, undo.key, value),
                 None => self.store.remove(&undo.bucket, &undo.key),
             };
         }
@@ -262,7 +270,7 @@ mod tests {
         let id = Key::parse("42").unwrap();
 
         let outcome = store.transaction(|tx| {
-            tx.insert(&users, &id, Value::new("Alice"));
+            tx.insert(users.clone(), id.clone(), Value::new("Alice"));
             Ok::<_, Rejected>(7)
         });
 
@@ -278,8 +286,8 @@ mod tests {
         let bob = Key::parse("43").unwrap();
 
         let outcome = store.transaction(|tx| {
-            tx.insert(&users, &alice, Value::new("Alice"));
-            tx.insert(&users, &bob, Value::new("Bob"));
+            tx.insert(users.clone(), alice.clone(), Value::new("Alice"));
+            tx.insert(users.clone(), bob.clone(), Value::new("Bob"));
             Err::<(), _>(Rejected)
         });
 
@@ -295,7 +303,7 @@ mod tests {
         let id = Key::parse("42").unwrap();
 
         let outcome = store.transaction(|tx| {
-            tx.insert(&users, &id, Value::new("Alice"));
+            tx.insert(users.clone(), id.clone(), Value::new("Alice"));
             let value = rejected()?;
             tx.insert(&users, &id, value);
             Ok(())
@@ -313,7 +321,7 @@ mod tests {
 
         let outcome = panic::catch_unwind(AssertUnwindSafe(|| {
             store.transaction::<_, (), Rejected>(|tx| {
-                tx.insert(&users, &id, Value::new("Alice"));
+                tx.insert(users.clone(), id.clone(), Value::new("Alice"));
                 panic!("the original problem");
             })
         }));
@@ -332,7 +340,7 @@ mod tests {
         let id = Key::parse("42").unwrap();
 
         let mut tx = store.begin();
-        tx.insert(&users, &id, Value::new("Alice"));
+        tx.insert(users.clone(), id.clone(), Value::new("Alice"));
     }
 
     #[derive(Debug, PartialEq, Eq)]

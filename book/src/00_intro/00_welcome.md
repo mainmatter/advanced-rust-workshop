@@ -2,9 +2,10 @@
 
 Welcome to Mainmatter's **Advanced Rust** workshop!
 
-You know Rust. You can read a lifetime annotation without flinching, you have shipped something real,
-and `cargo clippy` rarely surprises you any more. This course is about the next step: designing Rust
-APIs that other people, including future you, cannot get wrong.
+You know Rust. You have shipped something real, and `cargo clippy` rarely surprises you any more. This
+course is about the next step: designing Rust APIs that other people, including future you, cannot get
+wrong. Lifetimes are assumed, but elision, non-lexical borrows and higher-ranked bounds are covered
+where they come up, because API design keeps running into them.
 
 The premise is simple. Every rule your domain has is enforced somewhere: in a comment, in a code
 review, in a runtime check, or in the type system. The further left you push it, the cheaper it gets.

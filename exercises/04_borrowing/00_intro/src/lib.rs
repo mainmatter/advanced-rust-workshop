@@ -1,58 +1,95 @@
 //! # Exercise
 //!
-//! Nothing to write here. Read the three doctests, run `wr`, and move on.
+//! Nothing to write here. Read the doctests, run `wr`, and move on.
 //!
-//! Nobody has written a line of code about transaction isolation, and `minidb` has it anyway. Every
-//! rule below is enforced by the borrow checker, at compile time, and it falls out of two signatures:
-//! `begin` takes `&mut self`, and `commit` takes `self`.
+//! Rust has two kinds of reference, and what separates them is aliasing, not writing:
 //!
-//! Two transactions at once, where one could overwrite the other's work:
+//! - `&Store` is a **shared reference**. Any number of them may exist at once.
+//! - `&mut Store` is an **exclusive reference**. While one exists, no other reference to that value
+//!   does.
 //!
-//! ```compile_fail,E0499
-//! use borrow_checker_intro::Store;
+//! Calling them "immutable" and "mutable" is the usual mistake. `&Cell<T>`, `&Mutex<T>` and
+//! `&AtomicUsize` all let you change the value through a shared reference. What `&mut` promises is
+//! that no other path to the value exists, and being allowed to change things is what that promise
+//! buys.
 //!
-//! let mut store = Store::new();
-//! let first = store.begin();
-//! let second = store.begin();
-//!
-//! first.commit();
-//! second.commit();
-//! ```
-//!
-//! Reading the store while a transaction is open, which would show you changes that might still be
-//! taken back:
+//! The rule is one line long: **any number of shared references, or exactly one exclusive reference,
+//! never both**. Aliasing XOR mutation. Hold a value borrowed out of the store, then change the
+//! store, and you are asking for both:
 //!
 //! ```compile_fail,E0502
-//! use borrow_checker_intro::{Bucket, Key, Store, Value};
+//! use borrowing_intro::{Bucket, Key, Store, Value};
 //!
 //! let mut store = Store::new();
 //! let users = Bucket::parse("users").unwrap();
 //! let id = Key::parse("42").unwrap();
+//! store.insert(&users, &id, Value::new("Alice"));
 //!
-//! let mut tx = store.begin();
-//! tx.insert(&users, &id, Value::new("Alice"));
+//! let alice = store.get(&users, &id);
 //!
-//! store.get(&users, &id);
+//! store.insert(&users, &id, Value::new("Bob"));
 //!
-//! tx.commit();
+//! println!("{alice:?}");
 //! ```
 //!
-//! Committing the same transaction twice:
+//! Two exclusive references are the same rule from the other side:
 //!
-//! ```compile_fail,E0382
-//! use borrow_checker_intro::Store;
+//! ```compile_fail,E0499
+//! use borrowing_intro::Store;
 //!
 //! let mut store = Store::new();
-//! let tx = store.begin();
 //!
-//! tx.commit();
-//! tx.commit();
+//! let first = &mut store;
+//! let second = &mut store;
+//!
+//! first.buckets().count();
+//! second.buckets().count();
 //! ```
-
+//!
+//! Every reference is valid over a **region** of the code, and a **lifetime** is the name of that
+//! region. The region ends at the reference's last use, not at the closing brace, which is why moving
+//! one line makes the first example compile:
+//!
+//! ```
+//! use borrowing_intro::{Bucket, Key, Store, Value};
+//!
+//! let mut store = Store::new();
+//! let users = Bucket::parse("users").unwrap();
+//! let id = Key::parse("42").unwrap();
+//! store.insert(&users, &id, Value::new("Alice"));
+//!
+//! let alice = store.get(&users, &id).map(Value::as_str);
+//! assert_eq!(alice, Some("Alice"));
+//!
+//! store.insert(&users, &id, Value::new("Bob"));
+//! ```
+//!
+//! That is **non-lexical lifetimes**, and it is younger than the language: before Rust 2018 a borrow
+//! really did run to the end of its block, and this version had to be written with an extra scope
+//! around the read.
+//!
+//! You seldom write a lifetime down, because most of them are inferred. `Store::get` is declared
+//!
+//! ```text
+//! pub fn get(&self, bucket: &Bucket, key: &Key) -> Option<&Value>
+//! ```
+//!
+//! and means
+//!
+//! ```text
+//! pub fn get<'s, 'b, 'k>(&'s self, bucket: &'b Bucket, key: &'k Key) -> Option<&'s Value>
+//! ```
+//!
+//! Three rules do that, and they are the whole of **lifetime elision** for functions: every elided
+//! input lifetime becomes its own parameter; if there is exactly one input lifetime, every elided
+//! output gets it; and if one input is `&self`, every elided output gets `self`'s lifetime instead.
+//! The `Formatter<'_>` you wrote in chapter 3 is the third spelling, the **anonymous lifetime**: there
+//! is a borrow in that type and it is not worth naming.
+//!
+//! None of those rules apply to a struct that holds a reference, where you have to write the lifetime
+//! yourself. That is chapter 5.
 use std::collections::HashMap;
 use std::fmt::{self, Debug, Formatter};
-use std::mem;
-use std::thread;
 
 const MAX_NAME_LENGTH: usize = 64;
 
@@ -66,35 +103,6 @@ impl Store {
     pub fn new() -> Self {
         Self {
             buckets: HashMap::new(),
-        }
-    }
-
-    /// Runs `changes` in a transaction, committing it if they succeed and rolling it back if they do
-    /// not.
-    pub fn transaction<F, T, E>(&mut self, changes: F) -> Result<T, E>
-    where
-        F: FnOnce(&mut Transaction<'_>) -> Result<T, E>,
-    {
-        let mut tx = self.begin();
-
-        match changes(&mut tx) {
-            Ok(value) => {
-                tx.commit();
-                Ok(value)
-            }
-            Err(error) => {
-                tx.rollback();
-                Err(error)
-            }
-        }
-    }
-
-    /// Starts a transaction, borrowing the store until it finishes.
-    pub fn begin(&mut self) -> Transaction<'_> {
-        Transaction {
-            store: self,
-            undo: Vec::new(),
-            finished: false,
         }
     }
 
@@ -119,73 +127,6 @@ impl Store {
     /// Lists the buckets, including any that have been emptied.
     pub fn buckets(&self) -> impl Iterator<Item = &Bucket> {
         self.buckets.keys()
-    }
-}
-
-/// A set of changes applied to a [`Store`] together.
-///
-/// Changes take effect immediately. Until [`Transaction::commit`] is called, every one of them can
-/// still be taken back by [`Transaction::rollback`].
-pub struct Transaction<'store> {
-    store: &'store mut Store,
-    undo: Vec<Undo>,
-    finished: bool,
-}
-
-impl Transaction<'_> {
-    /// Inserts a value as part of this transaction.
-    pub fn insert(&mut self, bucket: &Bucket, key: &Key, value: Value) {
-        let previous = self.store.insert(bucket, key, value);
-        self.undo.push(Undo {
-            bucket: bucket.clone(),
-            key: key.clone(),
-            previous,
-        });
-    }
-
-    /// Removes a value as part of this transaction.
-    pub fn remove(&mut self, bucket: &Bucket, key: &Key) {
-        let previous = self.store.remove(bucket, key);
-        self.undo.push(Undo {
-            bucket: bucket.clone(),
-            key: key.clone(),
-            previous,
-        });
-    }
-
-    /// Keeps every change made through this transaction.
-    pub fn commit(mut self) {
-        self.finished = true;
-        self.undo.clear();
-    }
-
-    /// Takes back every change made through this transaction.
-    pub fn rollback(mut self) {
-        self.finished = true;
-        self.undo_everything();
-    }
-
-    fn undo_everything(&mut self) {
-        for undo in mem::take(&mut self.undo).into_iter().rev() {
-            match undo.previous {
-                Some(value) => self.store.insert(&undo.bucket, &undo.key, value),
-                None => self.store.remove(&undo.bucket, &undo.key),
-            };
-        }
-    }
-}
-
-impl Drop for Transaction<'_> {
-    fn drop(&mut self) {
-        if self.finished {
-            return;
-        }
-
-        self.undo_everything();
-
-        if !thread::panicking() {
-            panic!("transaction dropped while neither committed nor rolled back");
-        }
     }
 }
 
@@ -273,12 +214,6 @@ pub enum NameError {
     InvalidCharacter { character: char, index: usize },
 }
 
-struct Undo {
-    bucket: Bucket,
-    key: Key,
-    previous: Option<Value>,
-}
-
 fn parse_name(raw: &str) -> Result<String, NameError> {
     if raw.is_empty() {
         return Err(NameError::Empty);
@@ -303,25 +238,18 @@ mod tests {
     use crate::{Bucket, Key, Store, Value};
 
     #[test]
-    fn one_transaction_at_a_time_is_fine() {
+    fn any_number_of_shared_references_at_once() {
         let mut store = Store::new();
         let users = Bucket::parse("users").unwrap();
         let id = Key::parse("42").unwrap();
+        store.insert(&users, &id, Value::new("Alice"));
 
-        store
-            .transaction(|tx| {
-                tx.insert(&users, &id, Value::new("Alice"));
-                Ok::<_, ()>(())
-            })
-            .unwrap();
+        let first = store.get(&users, &id);
+        let second = store.get(&users, &id);
+        let buckets = store.buckets().count();
 
-        store
-            .transaction(|tx| {
-                tx.insert(&users, &id, Value::new("Bob"));
-                Ok::<_, ()>(())
-            })
-            .unwrap();
-
-        assert_eq!(store.get(&users, &id).map(Value::as_str), Some("Bob"));
+        assert_eq!(first.map(Value::as_str), Some("Alice"));
+        assert_eq!(second.map(Value::as_str), Some("Alice"));
+        assert_eq!(buckets, 1);
     }
 }

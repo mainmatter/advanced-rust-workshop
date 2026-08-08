@@ -1,5 +1,5 @@
 [package]
-name = "borrow_checker_intro"
+name = "borrowing_intro"
 version.workspace = true
 edition.workspace = true
 publish.workspace = true

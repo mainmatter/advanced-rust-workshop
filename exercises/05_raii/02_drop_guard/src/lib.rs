@@ -45,11 +45,8 @@ impl Store {
     }
 
     /// Inserts a value, returning the value it replaced, if any.
-    pub fn insert(&mut self, bucket: &Bucket, key: &Key, value: Value) -> Option<Value> {
-        self.buckets
-            .entry(bucket.clone())
-            .or_default()
-            .insert(key.clone(), value)
+    pub fn insert(&mut self, bucket: Bucket, key: Key, value: Value) -> Option<Value> {
+        self.buckets.entry(bucket).or_default().insert(key, value)
     }
 
     /// Looks up a value.
@@ -66,6 +63,17 @@ impl Store {
     pub fn buckets(&self) -> impl Iterator<Item = &Bucket> {
         self.buckets.keys()
     }
+
+    /// Keeps only the values the predicate accepts, dropping any bucket left empty.
+    pub fn retain<F>(&mut self, mut predicate: F)
+    where
+        F: FnMut(&Bucket, &Key, &Value) -> bool,
+    {
+        self.buckets.retain(|bucket, values| {
+            values.retain(|key, value| predicate(bucket, key, value));
+            !values.is_empty()
+        });
+    }
 }
 
 /// A set of changes applied to a [`Store`] together.
@@ -79,21 +87,21 @@ pub struct Transaction<'store> {
 
 impl Transaction<'_> {
     /// Inserts a value as part of this transaction.
-    pub fn insert(&mut self, bucket: &Bucket, key: &Key, value: Value) {
-        let previous = self.store.insert(bucket, key, value);
+    pub fn insert(&mut self, bucket: Bucket, key: Key, value: Value) {
+        let previous = self.store.insert(bucket.clone(), key.clone(), value);
         self.undo.push(Undo {
-            bucket: bucket.clone(),
-            key: key.clone(),
+            bucket,
+            key,
             previous,
         });
     }
 
     /// Removes a value as part of this transaction.
-    pub fn remove(&mut self, bucket: &Bucket, key: &Key) {
-        let previous = self.store.remove(bucket, key);
+    pub fn remove(&mut self, bucket: Bucket, key: Key) {
+        let previous = self.store.remove(&bucket, &key);
         self.undo.push(Undo {
-            bucket: bucket.clone(),
-            key: key.clone(),
+            bucket,
+            key,
             previous,
         });
     }
@@ -105,7 +113,7 @@ impl Transaction<'_> {
     pub fn rollback(self) {
         for undo in self.undo.into_iter().rev() {
             match undo.previous {
-                Some(value) => self.store.insert(&undo.bucket, &undo.key, value),
+                Some(value) => self.store.insert(undo.bucket, undo.key, value),
                 None => self.store.remove(&undo.bucket, &undo.key),
             };
         }
@@ -233,7 +241,7 @@ mod tests {
 
         {
             let mut tx = store.begin();
-            tx.insert(&users, &id, Value::new("Alice"));
+            tx.insert(users.clone(), id.clone(), Value::new("Alice"));
         }
 
         assert_eq!(store.get(&users, &id).map(Value::as_str), None);
@@ -246,7 +254,7 @@ mod tests {
         let id = Key::parse("42").unwrap();
 
         let mut tx = store.begin();
-        tx.insert(&users, &id, Value::new("Alice"));
+        tx.insert(users.clone(), id.clone(), Value::new("Alice"));
         tx.commit();
 
         assert_eq!(store.get(&users, &id).map(Value::as_str), Some("Alice"));
@@ -259,7 +267,7 @@ mod tests {
         let id = Key::parse("42").unwrap();
 
         let mut tx = store.begin();
-        tx.insert(&users, &id, Value::new("Alice"));
+        tx.insert(users.clone(), id.clone(), Value::new("Alice"));
         tx.rollback();
 
         assert_eq!(store.get(&users, &id).map(Value::as_str), None);
@@ -270,13 +278,13 @@ mod tests {
         let mut store = Store::new();
         let users = Bucket::parse("users").unwrap();
         let id = Key::parse("42").unwrap();
-        store.insert(&users, &id, Value::new("Alice"));
+        store.insert(users.clone(), id.clone(), Value::new("Alice"));
 
         {
             let mut tx = store.begin();
-            tx.insert(&users, &id, Value::new("Bob"));
-            tx.insert(&users, &id, Value::new("Carol"));
-            tx.remove(&users, &id);
+            tx.insert(users.clone(), id.clone(), Value::new("Bob"));
+            tx.insert(users.clone(), id.clone(), Value::new("Carol"));
+            tx.remove(users.clone(), id.clone());
         }
 
         assert_eq!(store.get(&users, &id).map(Value::as_str), Some("Alice"));
@@ -298,11 +306,11 @@ mod tests {
 
     fn write_both(store: &mut Store, bucket: &Bucket, first: &Key, second: &Key) -> Result<(), ()> {
         let mut tx = store.begin();
-        tx.insert(bucket, first, Value::new("Alice"));
+        tx.insert(bucket.clone(), first.clone(), Value::new("Alice"));
 
         let second_value = fetch_the_other_value()?;
 
-        tx.insert(bucket, second, second_value);
+        tx.insert(bucket.clone(), second.clone(), second_value);
         tx.commit();
 
         Ok(())

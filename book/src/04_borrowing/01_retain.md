@@ -1,14 +1,13 @@
 # Aliasing XOR mutability
 
-One rule underpins everything in the previous section:
+The rule from the previous section, once more, because this is where you meet it from the inside:
 
 > At any moment, a value may have **either** any number of shared references **or** exactly one
-> mutable reference. Never both.
+> exclusive reference. Never both.
 
-It is often stated as "aliasing xor mutability", and it is the reason the guarantees in the last
-section are free. If nobody else can be holding a reference to the store while a transaction has
-`&mut`, then isolation is not a property you have to maintain, it is a property the compiler already
-proved.
+Reading is not what the rule is about, and neither is writing. It is about how many ways there are to
+reach the value at once. Everything the next chapter gets for free rests on this, and so does the
+error you are about to provoke.
 
 The same rule is also the one that stops you doing this:
 
@@ -77,9 +76,9 @@ This is the escape hatch that scales to graphs, where nodes refer to each other 
 arena rather than by reference. It also gives up everything the borrow checker was doing for you: an
 index into the wrong collection is a logic bug the compiler cannot see.
 
-## When you genuinely need two mutable borrows
+## When you genuinely need two exclusive borrows
 
-Sometimes the requirement is real: two mutable references into the same collection, at once, to
+Sometimes the requirement is real: two exclusive references into the same collection, at once, to
 different elements. The compiler cannot prove the elements are distinct, so it refuses.
 
 The standard library solves this by providing the operations from the inside, where `unsafe` can be

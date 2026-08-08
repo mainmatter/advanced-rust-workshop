@@ -61,6 +61,47 @@ It is the strongest of the three levels, and worth naming them explicitly:
 | Drop bomb     | possible and loud     | a destructor and a flag |
 | Closure API   | not expressible       | flexibility             |
 
+## The lifetime you did not write
+
+There is an elided lifetime in that bound, and it does not behave like the ones in chapter 4:
+
+```rust
+F: FnOnce(&mut Transaction<'_>) -> Result<T, E>
+```
+
+In a function signature an elided lifetime becomes a parameter of the function. In an `Fn` bound it
+does not: it gets its own binder, and the bound above means
+
+```rust
+F: for<'tx, 'store> FnOnce(&'tx mut Transaction<'store>) -> Result<T, E>
+```
+
+That is a **higher-ranked bound**, and it has to be one. `transaction` creates the `Transaction`
+itself, inside its own body, so its lifetime is not something any caller could name. Try to make it a
+parameter of the function and the compiler says so:
+
+```rust
+pub fn transaction<'tx, F, T, E>(&mut self, changes: F) -> Result<T, E>
+where
+    F: FnOnce(&'tx mut Transaction<'_>) -> Result<T, E>,
+//  error[E0597]: `tx` does not live long enough
+```
+
+`for<'tx, 'store>` says the opposite of a parameter, and the opposite is what we mean: the callee
+picks, and the closure has to cope with whatever it picks.
+
+One trap, in case anyone tries to tidy it up. Collapsing the two binders into one type-checks as a
+bound and then fails inside the body:
+
+```rust
+F: for<'tx> FnOnce(&'tx mut Transaction<'tx>) -> Result<T, E>,
+//  error[E0505]: cannot move out of `tx` because it is borrowed
+```
+
+Tying the borrow of `tx` to `tx`'s own store lifetime keeps it borrowed for as long as it exists, so it
+can never be moved into `commit`. `&mut T` is invariant in `T`, so the compiler cannot shrink its way
+out. The two lifetimes have to stay separate, which is exactly what `'_` gives you for free.
+
 ## What it costs
 
 That last column is not a rounding error, and the honest version of this advice includes it.

@@ -1,33 +1,40 @@
 //! # Exercise
 //!
-//! Rolling back is the safe outcome, and it is now automatic. It is also silent: a transaction
-//! somebody forgot to commit behaves exactly like one they meant to abandon, and the bug survives
-//! into production disguised as a design decision.
-//!
-//! Arm the guard. Turn `Transaction` into a **drop bomb**: dropping one that was neither committed
-//! nor rolled back still undoes the work, and then panics, because reaching that line is a bug in the
-//! calling code.
-//!
-//! The struct already carries a `finished` flag for you. Make `commit` and `rollback` set it, and make
-//! `drop` react to it.
-//!
-//! One rule you must not skip. A panic while another panic is unwinding aborts the process
-//! immediately: no unwinding, no test failure, no message, just a dead process. So a drop bomb has to
-//! ask first:
+//! Put the store back where it belongs. A transaction should borrow it, not swallow it:
 //!
 //! ```text
-//! if !thread::panicking() {
-//!     panic!("...");
+//! pub struct Transaction<'store> {
+//!     store: &'store mut Store,
+//!     undo: Vec<Undo>,
 //! }
+//!
+//! Store::begin(&mut self) -> Transaction<'_>
+//! Transaction::commit(self)
+//! Transaction::rollback(self)
 //! ```
 //!
-//! The last test proves it. If you get this wrong it will not fail, it will take the whole test binary
-//! down with it, which is exactly how this bug presents itself in real code.
-
+//! `'store` is a lifetime parameter, and it is the first one you have to write yourself: elision
+//! covers functions, never structs. It says the transaction holds a reference valid over some region,
+//! that the struct is only valid over that same region, and therefore that a `Transaction` can never
+//! outlive the `Store` it came from.
+//!
+//! `begin` still needs no name for it. `&mut self` is the only input lifetime, so the elided
+//! `Transaction<'_>` in the return type is given that one, and `'_` says out loud that there is a
+//! borrow inside that type without bothering to name it. The impl header takes the same `'_`, because
+//! the methods do not care which region it is.
+//!
+//! Four things change, and one disappears:
+//!
+//! 1. the struct gains `'store` and holds `&'store mut Store`;
+//! 2. `begin` takes `&mut self` and returns `Transaction<'_>`;
+//! 3. `commit` and `rollback` stop returning a `Store`, because the caller never gave it up;
+//! 4. `Transaction::get` goes away. The store is reachable again the moment the transaction ends, and
+//!    while one is open the borrow checker has opinions about reading it that are worth meeting in
+//!    the next chapter rather than working around here.
+//!
+//! This exercise starts out **not compiling**: the tests are written against the borrowing version.
 use std::collections::HashMap;
 use std::fmt::{self, Debug, Formatter};
-use std::mem;
-use std::thread;
 
 const MAX_NAME_LENGTH: usize = 64;
 
@@ -44,12 +51,11 @@ impl Store {
         }
     }
 
-    /// Starts a transaction, borrowing the store until it finishes.
-    pub fn begin(&mut self) -> Transaction<'_> {
+    /// Hands the store to a transaction, which gives it back when it finishes.
+    pub fn begin(self) -> Transaction {
         Transaction {
             store: self,
             undo: Vec::new(),
-            finished: false,
         }
     }
 
@@ -89,13 +95,12 @@ impl Store {
 ///
 /// Changes take effect immediately. Until [`Transaction::commit`] is called, every one of them can
 /// still be taken back by [`Transaction::rollback`].
-pub struct Transaction<'store> {
-    store: &'store mut Store,
+pub struct Transaction {
+    store: Store,
     undo: Vec<Undo>,
-    finished: bool,
 }
 
-impl Transaction<'_> {
+impl Transaction {
     /// Inserts a value as part of this transaction.
     pub fn insert(&mut self, bucket: Bucket, key: Key, value: Value) {
         let previous = self.store.insert(bucket.clone(), key.clone(), value);
@@ -116,29 +121,21 @@ impl Transaction<'_> {
         });
     }
 
-    /// Keeps every change made through this transaction.
-    pub fn commit(mut self) {
-        self.undo.clear();
+    /// Keeps every change made through this transaction, and gives the store back.
+    pub fn commit(self) -> Store {
+        self.store
     }
 
-    /// Takes back every change made through this transaction.
-    pub fn rollback(mut self) {
-        self.undo_everything();
-    }
-
-    fn undo_everything(&mut self) {
-        for undo in mem::take(&mut self.undo).into_iter().rev() {
+    /// Takes back every change made through this transaction, and gives the store back.
+    pub fn rollback(mut self) -> Store {
+        for undo in self.undo.into_iter().rev() {
             match undo.previous {
                 Some(value) => self.store.insert(undo.bucket, undo.key, value),
                 None => self.store.remove(&undo.bucket, &undo.key),
             };
         }
-    }
-}
 
-impl Drop for Transaction<'_> {
-    fn drop(&mut self) {
-        self.undo_everything();
+        self.store
     }
 }
 
@@ -254,75 +251,48 @@ fn is_valid_char(c: char) -> bool {
 #[cfg(test)]
 mod tests {
     use crate::{Bucket, Key, Store, Value};
-    use std::panic::{self, AssertUnwindSafe};
 
     #[test]
-    #[should_panic(expected = "neither committed nor rolled back")]
-    fn forgetting_to_decide_is_a_bug_and_says_so() {
+    fn an_abandoned_transaction_silently_becomes_permanent() {
         let mut store = Store::new();
         let users = Bucket::parse("users").unwrap();
         let id = Key::parse("42").unwrap();
 
-        let mut tx = store.begin();
-        tx.insert(users.clone(), id.clone(), Value::new("Alice"));
-    }
-
-    #[test]
-    fn committing_is_a_decision() {
-        let mut store = Store::new();
-        let users = Bucket::parse("users").unwrap();
-        let id = Key::parse("42").unwrap();
-
-        let mut tx = store.begin();
-        tx.insert(users.clone(), id.clone(), Value::new("Alice"));
-        tx.commit();
+        {
+            let mut tx = store.begin();
+            tx.insert(users.clone(), id.clone(), Value::new("Alice"));
+        }
 
         assert_eq!(store.get(&users, &id).map(Value::as_str), Some("Alice"));
     }
 
     #[test]
-    fn rolling_back_is_a_decision() {
+    fn bailing_out_halfway_leaves_half_the_work_behind() {
         let mut store = Store::new();
         let users = Bucket::parse("users").unwrap();
-        let id = Key::parse("42").unwrap();
+        let alice = Key::parse("42").unwrap();
+        let bob = Key::parse("43").unwrap();
 
-        let mut tx = store.begin();
-        tx.insert(users.clone(), id.clone(), Value::new("Alice"));
-        tx.rollback();
-
-        assert_eq!(store.get(&users, &id).map(Value::as_str), None);
-    }
-
-    #[test]
-    fn the_bomb_still_undoes_the_work_on_its_way_out() {
-        let mut store = Store::new();
-        let users = Bucket::parse("users").unwrap();
-        let id = Key::parse("42").unwrap();
-
-        let outcome = panic::catch_unwind(AssertUnwindSafe(|| {
-            let mut tx = store.begin();
-            tx.insert(users.clone(), id.clone(), Value::new("Alice"));
-        }));
+        let outcome = write_both(&mut store, &users, &alice, &bob);
 
         assert!(outcome.is_err());
-        assert_eq!(store.get(&users, &id).map(Value::as_str), None);
+        assert_eq!(store.get(&users, &alice).map(Value::as_str), Some("Alice"));
+        assert_eq!(store.get(&users, &bob).map(Value::as_str), None);
     }
 
-    #[test]
-    fn a_panic_in_flight_is_not_replaced_by_the_bomb() {
-        let mut store = Store::new();
-        let users = Bucket::parse("users").unwrap();
-        let id = Key::parse("42").unwrap();
+    fn write_both(store: &mut Store, bucket: &Bucket, first: &Key, second: &Key) -> Result<(), ()> {
+        let mut tx = store.begin();
+        tx.insert(bucket.clone(), first.clone(), Value::new("Alice"));
 
-        let outcome = panic::catch_unwind(AssertUnwindSafe(|| {
-            let mut tx = store.begin();
-            tx.insert(users.clone(), id.clone(), Value::new("Alice"));
-            panic!("the original problem");
-        }));
+        let second_value = fetch_the_other_value()?;
 
-        let message = *outcome.unwrap_err().downcast::<&str>().unwrap();
+        tx.insert(bucket.clone(), second.clone(), second_value);
+        tx.commit();
 
-        assert_eq!(message, "the original problem");
-        assert_eq!(store.get(&users, &id).map(Value::as_str), None);
+        Ok(())
+    }
+
+    fn fetch_the_other_value() -> Result<Value, ()> {
+        Err(())
     }
 }

@@ -43,6 +43,9 @@ impl Debug for Value {
 }
 ```
 
+The `'_` in `Formatter<'_>` is the anonymous lifetime: there is a borrow inside that type, and naming
+it would buy nothing. Chapter 4 says what it is short for.
+
 The length is not an accident. A redaction that shows nothing at all makes debugging genuinely harder,
 and people respond by removing it. Showing the length distinguishes an empty value from a truncated one
 and from a value that is there but wrong, which covers most of what you actually need, and tells a

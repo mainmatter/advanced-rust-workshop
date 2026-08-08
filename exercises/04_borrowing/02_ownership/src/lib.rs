@@ -20,21 +20,17 @@
 //!
 //! Make `minidb` tell the truth too:
 //!
-//! - `Store::insert(&mut self, bucket: Bucket, key: Key, value: Value) -> Option<Value>`
-//! - `Transaction::insert(&mut self, bucket: Bucket, key: Key, value: Value)`
-//! - `Transaction::remove(&mut self, bucket: Bucket, key: Key)`
+//! ```text
+//! Store::insert(&mut self, bucket: Bucket, key: Key, value: Value) -> Option<Value>
+//! ```
 //!
-//! and delete every `clone` those bodies no longer need. Leave `get`, `remove` on `Store`, and
-//! `undo_everything` taking references: they genuinely only need to look.
-//!
-//! One clone survives, in `Transaction::insert`, because the undo log and the store each need their
-//! own copy of the name. That one is real work, not a hidden tax, and it is now visible in the code
-//! that does it.
+//! and delete the two `clone` calls the body no longer needs. Leave `get` and `remove` taking shared
+//! references: they genuinely only need to look, and a caller who still owns its names can keep them.
 //!
 //! Afterwards the cost is where the caller can see it:
 //!
 //! ```compile_fail,E0382
-//! use borrow_checker_ownership::{Bucket, Key, Store, Value};
+//! use borrowing_ownership::{Bucket, Key, Store, Value};
 //!
 //! let mut store = Store::new();
 //! let users = Bucket::parse("users").unwrap();
@@ -49,8 +45,6 @@
 
 use std::collections::HashMap;
 use std::fmt::{self, Debug, Formatter};
-use std::mem;
-use std::thread;
 
 const MAX_NAME_LENGTH: usize = 64;
 
@@ -64,35 +58,6 @@ impl Store {
     pub fn new() -> Self {
         Self {
             buckets: HashMap::new(),
-        }
-    }
-
-    /// Runs `changes` in a transaction, committing it if they succeed and rolling it back if they do
-    /// not.
-    pub fn transaction<F, T, E>(&mut self, changes: F) -> Result<T, E>
-    where
-        F: FnOnce(&mut Transaction<'_>) -> Result<T, E>,
-    {
-        let mut tx = self.begin();
-
-        match changes(&mut tx) {
-            Ok(value) => {
-                tx.commit();
-                Ok(value)
-            }
-            Err(error) => {
-                tx.rollback();
-                Err(error)
-            }
-        }
-    }
-
-    /// Starts a transaction, borrowing the store until it finishes.
-    pub fn begin(&mut self) -> Transaction<'_> {
-        Transaction {
-            store: self,
-            undo: Vec::new(),
-            finished: false,
         }
     }
 
@@ -128,73 +93,6 @@ impl Store {
             values.retain(|key, value| predicate(bucket, key, value));
             !values.is_empty()
         });
-    }
-}
-
-/// A set of changes applied to a [`Store`] together.
-///
-/// Changes take effect immediately. Until [`Transaction::commit`] is called, every one of them can
-/// still be taken back by [`Transaction::rollback`].
-pub struct Transaction<'store> {
-    store: &'store mut Store,
-    undo: Vec<Undo>,
-    finished: bool,
-}
-
-impl Transaction<'_> {
-    /// Inserts a value as part of this transaction.
-    pub fn insert(&mut self, bucket: &Bucket, key: &Key, value: Value) {
-        let previous = self.store.insert(bucket, key, value);
-        self.undo.push(Undo {
-            bucket: bucket.clone(),
-            key: key.clone(),
-            previous,
-        });
-    }
-
-    /// Removes a value as part of this transaction.
-    pub fn remove(&mut self, bucket: &Bucket, key: &Key) {
-        let previous = self.store.remove(bucket, key);
-        self.undo.push(Undo {
-            bucket: bucket.clone(),
-            key: key.clone(),
-            previous,
-        });
-    }
-
-    /// Keeps every change made through this transaction.
-    pub fn commit(mut self) {
-        self.finished = true;
-        self.undo.clear();
-    }
-
-    /// Takes back every change made through this transaction.
-    pub fn rollback(mut self) {
-        self.finished = true;
-        self.undo_everything();
-    }
-
-    fn undo_everything(&mut self) {
-        for undo in mem::take(&mut self.undo).into_iter().rev() {
-            match undo.previous {
-                Some(value) => self.store.insert(&undo.bucket, &undo.key, value),
-                None => self.store.remove(&undo.bucket, &undo.key),
-            };
-        }
-    }
-}
-
-impl Drop for Transaction<'_> {
-    fn drop(&mut self) {
-        if self.finished {
-            return;
-        }
-
-        self.undo_everything();
-
-        if !thread::panicking() {
-            panic!("transaction dropped while neither committed nor rolled back");
-        }
     }
 }
 
@@ -282,12 +180,6 @@ pub enum NameError {
     InvalidCharacter { character: char, index: usize },
 }
 
-struct Undo {
-    bucket: Bucket,
-    key: Key,
-    previous: Option<Value>,
-}
-
 fn parse_name(raw: &str) -> Result<String, NameError> {
     if raw.is_empty() {
         return Err(NameError::Empty);
@@ -336,38 +228,5 @@ mod tests {
             Some("Alice")
         );
         assert_eq!(store.get(&users, &id).map(Value::as_str), None);
-    }
-
-    #[test]
-    fn transactions_take_the_names_too() {
-        let mut store = Store::new();
-        let users = Bucket::parse("users").unwrap();
-        let id = Key::parse("42").unwrap();
-
-        store
-            .transaction(|tx| {
-                tx.insert(users.clone(), id.clone(), Value::new("Alice"));
-                Ok::<_, ()>(())
-            })
-            .unwrap();
-
-        assert_eq!(store.get(&users, &id).map(Value::as_str), Some("Alice"));
-    }
-
-    #[test]
-    fn rolling_back_still_puts_the_names_back() {
-        let mut store = Store::new();
-        let users = Bucket::parse("users").unwrap();
-        let id = Key::parse("42").unwrap();
-        store.insert(users.clone(), id.clone(), Value::new("Alice"));
-
-        let outcome = store.transaction(|tx| {
-            tx.insert(users.clone(), id.clone(), Value::new("Bob"));
-            tx.remove(users.clone(), id.clone());
-            Err::<(), _>("no")
-        });
-
-        assert_eq!(outcome, Err("no"));
-        assert_eq!(store.get(&users, &id).map(Value::as_str), Some("Alice"));
     }
 }

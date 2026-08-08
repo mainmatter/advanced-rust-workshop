@@ -8,7 +8,7 @@
 //!     F: FnMut(&Bucket, &Key, &Value) -> bool,
 //! ```
 //!
-//! The `mut` on `predicate` is there because calling an `FnMut` needs a mutable binding, whichever
+//! The `mut` on `predicate` is there because calling an `FnMut` needs an exclusive binding, whichever
 //! way you go about the rest.
 //!
 //! Every value the predicate rejects is removed, and a bucket left holding nothing disappears with
@@ -32,8 +32,6 @@
 
 use std::collections::HashMap;
 use std::fmt::{self, Debug, Formatter};
-use std::mem;
-use std::thread;
 
 const MAX_NAME_LENGTH: usize = 64;
 
@@ -47,35 +45,6 @@ impl Store {
     pub fn new() -> Self {
         Self {
             buckets: HashMap::new(),
-        }
-    }
-
-    /// Runs `changes` in a transaction, committing it if they succeed and rolling it back if they do
-    /// not.
-    pub fn transaction<F, T, E>(&mut self, changes: F) -> Result<T, E>
-    where
-        F: FnOnce(&mut Transaction<'_>) -> Result<T, E>,
-    {
-        let mut tx = self.begin();
-
-        match changes(&mut tx) {
-            Ok(value) => {
-                tx.commit();
-                Ok(value)
-            }
-            Err(error) => {
-                tx.rollback();
-                Err(error)
-            }
-        }
-    }
-
-    /// Starts a transaction, borrowing the store until it finishes.
-    pub fn begin(&mut self) -> Transaction<'_> {
-        Transaction {
-            store: self,
-            undo: Vec::new(),
-            finished: false,
         }
     }
 
@@ -100,81 +69,6 @@ impl Store {
     /// Lists the buckets, including any that have been emptied.
     pub fn buckets(&self) -> impl Iterator<Item = &Bucket> {
         self.buckets.keys()
-    }
-
-    /// Keeps only the values the predicate accepts, dropping any bucket left empty.
-    pub fn retain<F>(&mut self, mut predicate: F)
-    where
-        F: FnMut(&Bucket, &Key, &Value) -> bool,
-    {
-        todo!()
-    }
-}
-
-/// A set of changes applied to a [`Store`] together.
-///
-/// Changes take effect immediately. Until [`Transaction::commit`] is called, every one of them can
-/// still be taken back by [`Transaction::rollback`].
-pub struct Transaction<'store> {
-    store: &'store mut Store,
-    undo: Vec<Undo>,
-    finished: bool,
-}
-
-impl Transaction<'_> {
-    /// Inserts a value as part of this transaction.
-    pub fn insert(&mut self, bucket: &Bucket, key: &Key, value: Value) {
-        let previous = self.store.insert(bucket, key, value);
-        self.undo.push(Undo {
-            bucket: bucket.clone(),
-            key: key.clone(),
-            previous,
-        });
-    }
-
-    /// Removes a value as part of this transaction.
-    pub fn remove(&mut self, bucket: &Bucket, key: &Key) {
-        let previous = self.store.remove(bucket, key);
-        self.undo.push(Undo {
-            bucket: bucket.clone(),
-            key: key.clone(),
-            previous,
-        });
-    }
-
-    /// Keeps every change made through this transaction.
-    pub fn commit(mut self) {
-        self.finished = true;
-        self.undo.clear();
-    }
-
-    /// Takes back every change made through this transaction.
-    pub fn rollback(mut self) {
-        self.finished = true;
-        self.undo_everything();
-    }
-
-    fn undo_everything(&mut self) {
-        for undo in mem::take(&mut self.undo).into_iter().rev() {
-            match undo.previous {
-                Some(value) => self.store.insert(&undo.bucket, &undo.key, value),
-                None => self.store.remove(&undo.bucket, &undo.key),
-            };
-        }
-    }
-}
-
-impl Drop for Transaction<'_> {
-    fn drop(&mut self) {
-        if self.finished {
-            return;
-        }
-
-        self.undo_everything();
-
-        if !thread::panicking() {
-            panic!("transaction dropped while neither committed nor rolled back");
-        }
     }
 }
 
@@ -260,12 +154,6 @@ pub enum NameError {
     Empty,
     TooLong { length: usize },
     InvalidCharacter { character: char, index: usize },
-}
-
-struct Undo {
-    bucket: Bucket,
-    key: Key,
-    previous: Option<Value>,
 }
 
 fn parse_name(raw: &str) -> Result<String, NameError> {

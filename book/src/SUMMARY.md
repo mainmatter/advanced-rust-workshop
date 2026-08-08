@@ -20,6 +20,7 @@
   - [Ownership in signatures](04_borrowing/02_ownership.md)
 
 - [RAII](05_raii/00_intro.md)
+  - [A borrowed store](05_raii/01_borrow.md)
   - [Drop guards](05_raii/02_drop_guard.md)
   - [Drop bombs and the limits of Drop](05_raii/03_drop_bomb.md)
   - [Closure APIs](05_raii/04_closure_api.md)

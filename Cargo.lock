@@ -15,15 +15,15 @@ name = "api_design_naming"
 version = "0.1.0"
 
 [[package]]
-name = "borrow_checker_intro"
+name = "borrowing_intro"
 version = "0.1.0"
 
 [[package]]
-name = "borrow_checker_ownership"
+name = "borrowing_ownership"
 version = "0.1.0"
 
 [[package]]
-name = "borrow_checker_retain"
+name = "borrowing_retain"
 version = "0.1.0"
 
 [[package]]
@@ -92,6 +92,10 @@ version = "0.1.0"
 
 [[package]]
 name = "polymorphism_sealed"
+version = "0.1.0"
+
+[[package]]
+name = "raii_borrow"
 version = "0.1.0"
 
 [[package]]

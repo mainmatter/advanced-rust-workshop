@@ -1,5 +1,42 @@
 # Drop guards
 
+Now that the store survives its transaction, there is one obvious way to get this wrong, and everybody
+does:
+
+```rust
+fn write_both(store: &mut Store) -> Result<(), Error> {
+    let mut tx = store.begin();
+    tx.insert(users.clone(), alice, Value::new("Alice"));
+
+    let value = fetch_the_other_value()?;   // returns early
+
+    tx.insert(users, bob, value);
+    tx.commit();
+    Ok(())
+}
+```
+
+The early return skips the commit, so the transaction is dropped where it stands and half the work is
+now permanent. No error, no warning: the type system watched the whole thing happen and said nothing.
+
+Note how little the mistake looks like a mistake. There is no forgotten `close()`, no unbalanced
+`unlock()`, just a `?` in the middle of a function, which is the most ordinary thing in Rust.
+
+## The idea
+
+**Resource Acquisition Is Initialisation** is a terrible name for a good idea. The idea is:
+
+> Tie the cleanup to a value, and let the compiler run it when the value goes away.
+
+You do not have to remember. You cannot forget on the error path, because the error path drops your
+values too. You cannot forget on the panic path either, because unwinding drops them as well.
+
+Rust leans on this harder than any mainstream language, because ownership tells the compiler exactly
+when each value dies. `Box` frees, `File` closes, `MutexGuard` unlocks, `JoinHandle` waits. None of
+those need a `finally` block, and none of them can be skipped by an early return.
+
+## The guard
+
 A **drop guard** is a value whose only job is to do something when it goes out of scope. `MutexGuard`
 is the one everybody has met: it exists so that `unlock` cannot be forgotten, and it has no other
 purpose.
