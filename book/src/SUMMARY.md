@@ -15,14 +15,14 @@
   - [Debug and Display](03_common_traits/01_debug.md)
   - [Eq, Hash and conversions](03_common_traits/02_hash_eq.md)
 
-- [RAII](04_raii/00_intro.md)
-  - [Drop guards](04_raii/01_drop_guard.md)
-  - [Drop bombs and the limits of Drop](04_raii/02_drop_bomb.md)
-  - [Closure APIs](04_raii/03_closure_api.md)
+- [Ownership, borrowing and lifetimes](04_borrowing/00_intro.md)
+  - [Aliasing XOR mutability](04_borrowing/01_retain.md)
+  - [Ownership in signatures](04_borrowing/02_ownership.md)
 
-- [The borrow checker as an enforcement engine](05_borrow_checker/00_intro.md)
-  - [Aliasing XOR mutability](05_borrow_checker/01_retain.md)
-  - [Ownership in signatures](05_borrow_checker/02_ownership.md)
+- [RAII](05_raii/00_intro.md)
+  - [Drop guards](05_raii/02_drop_guard.md)
+  - [Drop bombs and the limits of Drop](05_raii/03_drop_bomb.md)
+  - [Closure APIs](05_raii/04_closure_api.md)
 
 - [Typestate](06_typestate/00_intro.md)
   - [States as capabilities](06_typestate/01_transaction.md)
