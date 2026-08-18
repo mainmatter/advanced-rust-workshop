@@ -32,7 +32,8 @@ is the only way to add a method to types you have never heard of.
 
 **`Self: Sized` on the method**, not on the trait. A method taking `self` by value needs a sized
 receiver, but putting `Sized` on the trait itself would make `dyn IteratorExt` impossible. Keeping the
-bound on the method is what lets `Iterator` itself be both object-safe and full of consuming adaptors.
+bound on the method is what lets `Iterator` itself be both dyn compatible and full of consuming
+adaptors.
 
 ## Method resolution, and how it bites
 
