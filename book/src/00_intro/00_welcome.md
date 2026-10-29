@@ -78,3 +78,8 @@ congratulates you or shows you what went wrong. It will not let you move on unti
 compiles and passes. Solve it, run `wr` again, and it opens the next one.
 
 That is the whole loop. Let's make sure it works.
+
+# License
+
+Copyright © 2024- Mainmatter GmbH (https://mainmatter.com), released under the
+[PolyForm-Noncommercial-1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0).
